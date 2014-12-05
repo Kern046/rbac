@@ -1,7 +1,6 @@
 <?php
-namespace PhpRbac;
 
-use \Jf;
+namespace PhpRbac;
 
 /**
  * @file
@@ -20,8 +19,6 @@ class Rbac
         } else {
             require_once dirname(dirname(__DIR__)) . '/database/database.config';
         }
-
-        require_once 'core/lib/Jf.php';
 
         $this->Permissions = Jf::$Rbac->Permissions;
         $this->Roles = Jf::$Rbac->Roles;

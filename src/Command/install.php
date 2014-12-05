@@ -1,5 +1,7 @@
 <?php
 
+    use PhpRbac\Command;
+    
     use PhpRbac\Rbac;
     /**
      * We check if the script is really executed by a shell user
@@ -10,7 +12,7 @@
         header('Location: /');
     }
     
-    require('autoload.php');
+    require('../autoload.php');
     
     $database = [
         'adapter'       => null,
@@ -161,7 +163,7 @@
             '$pass="' . $database['password'] . '";' . PHP_EOL
         ;
 
-        $dbConnFile = 'database' . DIRECTORY_SEPARATOR . 'database.config';
+        $dbConnFile = '../config/database.config';
 
         file_put_contents($dbConnFile, $data);
 

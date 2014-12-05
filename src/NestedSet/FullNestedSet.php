@@ -1,26 +1,7 @@
 <?php
-interface ExtendedNestedSet extends NestedSetInterface
-{
-	//All functions with ConditionString, accept other parameters in variable numbers
-	function getID($ConditionString);
 
-	function insertChildData($FieldValueArray=array(),$ConditionString=null);
-	function insertSiblingData($FieldValueArray=array(),$ConditionString=null);
+namespace PhpRbac\NestedSet;
 
-	function deleteSubtreeConditional($ConditionString);
-	function deleteConditional($ConditionString);
-
-
-	function childrenConditional($ConditionString);
-	function descendantsConditional($AbsoluteDepths=false,$ConditionString);
-	function leavesConditional($ConditionString=null);
-	function pathConditional($ConditionString);
-
-	function depthConditional($ConditionString);
-	function parentNodeConditional($ConditionString);
-	function siblingConditional($SiblingDistance=1,$ConditionString);
-	/**/
-}
 /**
  * FullNestedSet Class
  * This class provides a means to implement Hierarchical data in flat SQL tables.
@@ -31,7 +12,7 @@ interface ExtendedNestedSet extends NestedSetInterface
  * have a table with at least 3 INT fields for ID,Left and Right.
  * Create a new instance of this class and pass the name of table and name of the 3 fields above
  */
-class FullNestedSet extends BaseNestedSet implements ExtendedNestedSet
+class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
 {
 	/**
     public $AutoRipRightLeft=true;
@@ -488,7 +469,4 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSet
 
         return call_user_func_array("Jf::sql",$Arguments);
     }
-
 }
-
-?>

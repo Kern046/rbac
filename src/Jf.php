@@ -1,5 +1,8 @@
 <?php
-require_once __DIR__."/rbac.php";
+
+namespace PhpRbac;
+
+use PhpRbac\Manager\RbacManager;
 
 class Jf
 {
@@ -204,4 +207,4 @@ class Jf
 
 Jf::setTablePrefix($tablePrefix);
 Jf::$Rbac=new RbacManager();
-require_once __DIR__."/../setup.php";
+require_once __DIR__."/Command/setup.php";
