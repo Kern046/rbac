@@ -43,10 +43,10 @@ class Jf
 	static function sql($Query)
 	{
 		$args = func_get_args ();
-		if (get_class ( self::$Db ) == "PDO")
+		if (self::$Db instanceof \PDO)
 			return call_user_func_array ( "self::sqlPdo", $args );
 		else
-			if (get_class ( self::$Db ) == "mysqli")
+			if (self::$Db instanceof mysqli)
 				return call_user_func_array ( "self::sqlMysqli", $args );
 			else
 				throw new Exception ( "Unknown database interface type." );

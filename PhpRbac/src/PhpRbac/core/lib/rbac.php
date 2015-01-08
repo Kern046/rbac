@@ -24,13 +24,11 @@ class JModel
 
 	protected function isSQLite()
 	{
-		$Adapter=get_class(Jf::$Db);
-		return $Adapter == "PDO" and Jf::$Db->getAttribute(PDO::ATTR_DRIVER_NAME)=="sqlite";
+		return Jf::$Db instanceof \PDO && Jf::$Db->getAttribute(PDO::ATTR_DRIVER_NAME)=="sqlite";
 	}
 	protected function isMySql()
 	{
-		$Adapter=get_class(Jf::$Db);
-		return $Adapter == "mysqli" or ($Adapter == "PDO" and Jf::$Db->getAttribute(PDO::ATTR_DRIVER_NAME)=="mysql");
+		return Jf::$Db instanceof mysqli || (Jf::$Db instanceof \PDO && Jf::$Db->getAttribute(PDO::ATTR_DRIVER_NAME)=="mysql");
 	}
 }
 
