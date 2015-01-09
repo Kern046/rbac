@@ -2,7 +2,27 @@
 
 PHP-RBAC is the de-facto authorization library for PHP. It provides developers with NIST Level 2 Hierarchical Role Based Access Control and more, in the fastest implementation yet.
 
-**Current Stable Release:** [PHP-RBAC v2.0]()
+**Current Stable Release:** [PHP-RBAC v2.0](https://sourceforge.net/projects/phprbac/files/latest/download?source=dlp)
+
+##Repo Branches Explained
+
+* **master**:
+
+    Contains most current stable release. Shouldn't be touched until new release is merged from 'dev/v2.x/staging'
+    
+* **dev/v2.x/staging**:
+
+    Staging area. All changes for next release will be merged here once a change's feature set is complete, including Unit Tests
+
+* **dev/v2.x/[topic_branch]**:
+
+    Topic branches used to work on new changes, new features, bug fixes and Unit Tests
+
+* **PhpRbac/Classic**:
+
+    Contains PHP-RBAC v1.0 code base
+
+##Contact Us
 
 * Home Page: [http://phprbac.net/](http://phprbac.net/)
 * OWASP Project Page: [https://www.owasp.org/index.php/Phprbac](https://www.owasp.org/index.php/Phprbac)

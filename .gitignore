@@ -6,5 +6,5 @@
 *phprbac.sqlite3*
 *Doxygen*
 *phpdoc*
-index.php
-vendor
+/nbproject/
+/vendor/
