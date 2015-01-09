@@ -25,10 +25,5 @@
 		"psr-0" : {
 			"PhpRbac" : ""
 		}
-	},
-	"repositories" : [{
-            "type" : "vcs",
-            "url" : "https://github.com/OWASP/rbac.git"
-        }
-    ]
+	}
 }
