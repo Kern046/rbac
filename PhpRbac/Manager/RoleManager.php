@@ -1,4 +1,9 @@
 <?php
+namespace PhpRbac\Manager;
+
+use PhpRbac\NestedSet\FullNestedSet;
+
+use PhpRbac\Database\Jf;
 
 /**
  * @defgroup phprbac_role_manager Documentation regarding Role Manager Functionality
@@ -12,7 +17,7 @@
  * @author abiusx
  * @version 1.0
  */
-class RoleManager extends BaseRbac
+class RoleManager extends BaseRbacManager
 {
 	/**
 	 * Roles Nested Set

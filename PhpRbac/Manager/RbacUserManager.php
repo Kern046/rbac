@@ -1,5 +1,12 @@
 <?php
 
+namespace PhpRbac\Manager;
+
+use PhpRbac\Database\JModel;
+use PhpRbac\Database\Jf;
+
+use PhpRbac\Exception\RbacUserNotProvidedException;
+
 /**
  * @defgroup phprbac_user_manager Documentation regarding Rbac User Manager Functionality
  * @ingroup phprbac
@@ -28,7 +35,7 @@ class RbacUserManager extends JModel
 	function hasRole($Role, $UserID = null)
 	{
 	    if ($UserID === null)
-		    throw new \RbacUserNotProvidedException ("\$UserID is a required argument.");
+		    throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
 		if (is_numeric ( $Role ))
 		{
@@ -65,7 +72,7 @@ class RbacUserManager extends JModel
 	function assign($Role, $UserID = null)
 	{
 	    if ($UserID === null)
-		    throw new \RbacUserNotProvidedException ("\$UserID is a required argument.");
+		    throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
 		if (is_numeric($Role))
 		{
@@ -98,7 +105,7 @@ class RbacUserManager extends JModel
 	function unassign($Role, $UserID = null)
 	{
 	    if ($UserID === null)
-	        throw new \RbacUserNotProvidedException ("\$UserID is a required argument.");
+	        throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
 	    if (is_numeric($Role))
 	    {
@@ -128,7 +135,7 @@ class RbacUserManager extends JModel
 	function allRoles($UserID = null)
 	{
 	   if ($UserID === null)
-		    throw new \RbacUserNotProvidedException ("\$UserID is a required argument.");
+		    throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
 		return Jf::sql ( "SELECT TR.*
 			FROM
@@ -149,7 +156,7 @@ class RbacUserManager extends JModel
 	function roleCount($UserID = null)
 	{
 		if ($UserID === null)
-		    throw new \RbacUserNotProvidedException ("\$UserID is a required argument.");
+		    throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
 		$Res = Jf::sql ( "SELECT COUNT(*) AS Result FROM {$this->tablePrefix()}userroles WHERE UserID=?", $UserID );
 		return (int)$Res [0] ['Result'];

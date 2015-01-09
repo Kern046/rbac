@@ -1,5 +1,8 @@
 <?php
+namespace PhpRbac\Manager;
 
+use PhpRbac\NestedSet\FullNestedSet;
+use PhpRbac\Database\Jf;
 /**
  * @defgroup phprbac_permission_manager Documentation regarding Permission Manager Functionality
  * @ingroup phprbac
@@ -12,7 +15,7 @@
  * @author abiusx
  * @version 1.0
  */
-class PermissionManager extends BaseRbac
+class PermissionManager extends BaseRbacManager
 {
 	/**
 	 * Permissions Nested Set

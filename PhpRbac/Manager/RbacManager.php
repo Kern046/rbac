@@ -1,4 +1,11 @@
 <?php
+namespace PhpRbac\Manager;
+
+use PhpRbac\Database\JModel;
+use PhpRbac\Database\Jf;
+
+use PhpRbac\Exception\RbacPermissionNotFoundException;
+use PhpRbac\Exception\RbacUserNotProvidedException;
 
 /**
  * @defgroup phprbac_manager Documentation regarding Rbac Manager Functionality
@@ -81,7 +88,7 @@ class RbacManager extends JModel
     function check($Permission, $UserID = null)
     {
         if ($UserID === null)
-            throw new \RbacUserNotProvidedException ("\$UserID is a required argument.");
+            throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
         // convert permission to ID
         if (is_numeric ( $Permission ))
@@ -145,7 +152,7 @@ class RbacManager extends JModel
 	function enforce($Permission, $UserID = null)
 	{
 	if ($UserID === null)
-                throw new \RbacUserNotProvidedException ("\$UserID is a required argument.");
+                throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
 		if (! $this->check($Permission, $UserID)) {
             header('HTTP/1.1 403 Forbidden');

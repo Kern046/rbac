@@ -1,4 +1,6 @@
 <?php
+namespace PhpRbac\NestedSet;
+
 interface NestedSetInterface
 {
     public function insertChild($PID=0);

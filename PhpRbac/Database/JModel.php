@@ -1,5 +1,7 @@
 <?php
 
+namespace PhpRbac\Database;
+
 class JModel
 {
     function tablePrefix()
@@ -10,12 +12,12 @@ class JModel
     protected function isSQLite()
     {
         $Adapter=get_class(Jf::$Db);
-        return $Adapter == "PDO" and Jf::$Db->getAttribute(PDO::ATTR_DRIVER_NAME)=="sqlite";
+        return $Adapter == "PDO" and Jf::$Db->getAttribute(\PDO::ATTR_DRIVER_NAME)=="sqlite";
     }
     
     protected function isMySql()
     {
         $Adapter=get_class(Jf::$Db);
-        return $Adapter == "mysqli" or ($Adapter == "PDO" and Jf::$Db->getAttribute(PDO::ATTR_DRIVER_NAME)=="mysql");
+        return $Adapter == "mysqli" or ($Adapter == "PDO" and Jf::$Db->getAttribute(\PDO::ATTR_DRIVER_NAME)=="mysql");
     }
 }

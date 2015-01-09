@@ -1,4 +1,8 @@
 <?php
+namespace PhpRbac\Manager;
+
+use PhpRbac\Database\JModel;
+use PhpRbac\Database\Jf;
 /**
  * Rbac base class, it contains operations that are essentially the same for
  * permissions and roles

@@ -1,4 +1,8 @@
 <?php
+namespace PhpRbac\NestedSet;
+
+use PhpRbac\Database\Jf;
+
 /**
  * FullNestedSet Class
  * This class provides a means to implement Hierarchical data in flat SQL tables.

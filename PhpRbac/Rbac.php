@@ -1,7 +1,8 @@
 <?php
+
 namespace PhpRbac;
 
-use \Jf;
+use PhpRbac\Database\Jf;
 
 /**
  * @file
@@ -16,12 +17,10 @@ class Rbac
     public function __construct($unit_test = '')
     {
         if ((string) $unit_test === 'unit_test') {
-            require_once dirname(dirname(__DIR__)) . '/tests/database/database.config';
+            require_once __DIR__ . '/tests/database/database.config';
         } else {
-            require_once dirname(dirname(__DIR__)) . '/database/database.config';
+            require_once __DIR__ . '/Database/database.config';
         }
-
-        require_once 'core/lib/Jf.php';
 
         $this->Permissions = Jf::$Rbac->Permissions;
         $this->Roles = Jf::$Rbac->Roles;

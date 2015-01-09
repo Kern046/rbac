@@ -1,6 +1,7 @@
 <?php
+namespace PhpRbac\NestedSet;
 
-interface ExtendedNestedSet extends NestedSetInterface
+interface ExtendedNestedSetInterface extends NestedSetInterface
 {
 	//All functions with ConditionString, accept other parameters in variable numbers
 	function getID($ConditionString);
