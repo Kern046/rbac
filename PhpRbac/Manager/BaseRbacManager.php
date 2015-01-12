@@ -40,7 +40,6 @@ abstract class BaseRbacManager extends JModel
 	 */
 	function add($Title, $Description, $ParentID = null)
 	{
-            die('ok');
 		if ($ParentID === null)
 			$ParentID = $this->rootId ();
 		return (int)$this->{$this->type ()}->insertChildData ( array ("Title" => $Title, "Description" => $Description ), "ID=?", $ParentID );
