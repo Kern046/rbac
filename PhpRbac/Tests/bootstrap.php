@@ -3,4 +3,4 @@
 error_reporting(E_ALL);
 
 // autoloader
-require dirname(__DIR__) . '/autoload.php';
+require __DIR__ . '/../../vendor/autoload.php';

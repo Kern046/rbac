@@ -4,17 +4,9 @@ namespace PhpRbac;
 
 use PhpRbac\Database\Jf;
 
-/**
- * @file
- * Provides NIST Level 2 Standard Role Based Access Control functionality
- *
- * @defgroup phprbac Rbac Functionality
- * @{
- * Documentation for all PhpRbac related functionality.
- */
 class Rbac
 {
-    public function __construct($unit_test = '')
+    public function __construct()
     {
         $this->Permissions = Jf::$Rbac->Permissions;
         $this->Roles = Jf::$Rbac->Roles;
@@ -46,5 +38,3 @@ class Rbac
         return Jf::$Rbac->tablePrefix();
     }
 }
-
-/** @} */ // End group phprbac */
