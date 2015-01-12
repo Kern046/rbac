@@ -22,9 +22,20 @@ class Jf
 	    self::$TABLE_PREFIX = $tablePrefix;
 	}
         
-        public static function loadConfig($file)
+        public static function loadConfig($data)
         {
-            self::$config = json_decode(file_get_contents($file), true);
+            if(is_file($data))
+            {
+                self::$config = json_decode(file_get_contents($data), true);
+            }
+            elseif(is_array($data))
+            {
+                self::$config = $data;
+            }
+            else
+            {
+                throw new \InvalidArgumentException('$data must be a JSON file or an array');
+            }
         }
         
         public static function getConfig($key)
