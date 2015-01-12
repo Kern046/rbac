@@ -34,7 +34,7 @@ class RoleManager extends BaseRbacManager
 	function __construct()
 	{
 		$this->type = "roles";
-		$this->roles = new FullNestedSet ( $this->tablePrefix () . "roles", "ID", "Lft", "Rght" );
+		$this->roles = new FullNestedSet ( Jf::getConfig('table_prefix') . "roles", "ID", "Lft", "Rght" );
 	}
 
 	/**
@@ -65,8 +65,8 @@ class RoleManager extends BaseRbacManager
 	 */
 	function unassignPermissions($ID)
 	{
-		$r = Jf::sql ( "DELETE FROM {$this->tablePrefix()}rolepermissions WHERE
-			RoleID=? ", $ID );
+		$r = Jf::sql ('DELETE FROM ' . Jf::getConfig('table_prefix') . 'rolepermissions WHERE
+			RoleID=?', $ID );
 		return $r;
 	}
 
@@ -79,8 +79,8 @@ class RoleManager extends BaseRbacManager
 	 */
 	function unassignUsers($ID)
 	{
-		return Jf::sql ( "DELETE FROM {$this->tablePrefix()}userroles WHERE
-			RoleID=?", $ID );
+		return Jf::sql ('DELETE FROM ' . Jf::getConfig('table_prefix') . 'userroles WHERE
+			RoleID=?', $ID );
 	}
 
 	/**
@@ -96,30 +96,30 @@ class RoleManager extends BaseRbacManager
 	 */
 	function hasPermission($Role, $Permission)
 	{
-		$Res = Jf::sql ( "
-					SELECT COUNT(*) AS Result
-					FROM {$this->tablePrefix()}rolepermissions AS TRel
-					JOIN {$this->tablePrefix()}permissions AS TP ON ( TP.ID= TRel.PermissionID)
-					JOIN {$this->tablePrefix()}roles AS TR ON ( TR.ID = TRel.RoleID)
-					WHERE TR.Lft BETWEEN
-					(SELECT Lft FROM {$this->tablePrefix()}roles WHERE ID=?)
-					AND
-					(SELECT Rght FROM {$this->tablePrefix()}roles WHERE ID=?)
-					/* the above section means any row that is a descendants of our role (if descendant roles have some permission, then our role has it two) */
-					AND TP.ID IN (
-					SELECT parent.ID
-					FROM {$this->tablePrefix()}permissions AS node,
-					{$this->tablePrefix()}permissions AS parent
-					WHERE node.Lft BETWEEN parent.Lft AND parent.Rght
-					AND ( node.ID=? )
-					ORDER BY parent.Lft
-					);
-					/*
-					the above section returns all the parents of (the path to) our permission, so if one of our role or its descendants
-					has an assignment to any of them, we're good.
-					*/
-					", $Role, $Role, $Permission );
-		return $Res [0] ['Result'] >= 1;
+            $tablePrefix = Jf::getConfig('table_prefix');
+            $Res = Jf::sql ( "SELECT COUNT(*) AS Result
+                FROM {$tablePrefix}rolepermissions AS TRel
+                JOIN {$tablePrefix}permissions AS TP ON ( TP.ID= TRel.PermissionID)
+                JOIN {$tablePrefix}roles AS TR ON ( TR.ID = TRel.RoleID)
+                WHERE TR.Lft BETWEEN
+                (SELECT Lft FROM {$tablePrefix}roles WHERE ID=?)
+                AND
+                (SELECT Rght FROM {$tablePrefix}roles WHERE ID=?)
+                /* the above section means any row that is a descendants of our role (if descendant roles have some permission, then our role has it two) */
+                AND TP.ID IN (
+                SELECT parent.ID
+                FROM {$tablePrefix}permissions AS node,
+                {$tablePrefix}permissions AS parent
+                WHERE node.Lft BETWEEN parent.Lft AND parent.Rght
+                AND ( node.ID=? )
+                ORDER BY parent.Lft
+                );
+                /*
+                the above section returns all the parents of (the path to) our permission, so if one of our role or its descendants
+                has an assignment to any of them, we're good.
+                */
+                ", $Role, $Role, $Permission);
+            return $Res [0] ['Result'] >= 1;
 	}
 
 	/**
@@ -135,24 +135,27 @@ class RoleManager extends BaseRbacManager
 	function permissions($Role, $OnlyIDs = true)
 	{
 	    if (! is_numeric ($Role))
-	        $Role = $this->returnId($Role);
+            {
+                $Role = $this->returnId($Role);
+            }
 
-		if ($OnlyIDs)
-		{
-			$Res = Jf::sql ( "SELECT PermissionID AS `ID` FROM {$this->tablePrefix()}rolepermissions WHERE RoleID=? ORDER BY PermissionID", $Role );
-			if (is_array ( $Res ))
-			{
-				$out = array ();
-				foreach ( $Res as $R )
-					$out [] = $R ['ID'];
-				return $out;
-			}
-			else
-				return null;
-		} else {
-	        return Jf::sql ( "SELECT `TP`.ID, `TP`.Title, `TP`.Description FROM {$this->tablePrefix()}permissions AS `TP`
-		        LEFT JOIN {$this->tablePrefix()}rolepermissions AS `TR` ON (`TR`.PermissionID=`TP`.ID)
-		        WHERE RoleID=? ORDER BY TP.ID", $Role );
-		}
+            $tablePrefix = Jf::getConfig('table_prefix');
+            if ($OnlyIDs)
+            {
+                $Res = Jf::sql ( "SELECT PermissionID AS `ID` FROM {$tablePrefix}rolepermissions WHERE RoleID=? ORDER BY PermissionID", $Role );
+                if (is_array ( $Res ))
+                {
+                        $out = array ();
+                        foreach ( $Res as $R )
+                                $out [] = $R ['ID'];
+                        return $out;
+                }
+                else
+                        return null;
+            } else {
+            return Jf::sql ( "SELECT `TP`.ID, `TP`.Title, `TP`.Description FROM {$tablePrefix}permissions AS `TP`
+                    LEFT JOIN {$tablePrefix}rolepermissions AS `TR` ON (`TR`.PermissionID=`TP`.ID)
+                    WHERE RoleID=? ORDER BY TP.ID", $Role );
+            }
 	}
 }

@@ -51,7 +51,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         array_shift($args);
         $Query="SELECT {$this->id()} AS ID FROM {$this->table()} WHERE $ConditionString LIMIT 1";
         array_unshift($args,$Query);
-        $Res=call_user_func_array(("Jf::sql"),$args);
+        $Res=call_user_func_array(("PhpRbac\Database\Jf::sql"),$args);
         if ($Res)
         return $Res[0]["ID"];
         else
@@ -70,7 +70,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         array_shift($args);
         $Query="SELECT * FROM {$this->table()} WHERE $ConditionString";
         array_unshift($args,$Query);
-        $Res=call_user_func_array(("Jf::sql"),$args);
+        $Res=call_user_func_array(("PhpRbac\Database\Jf::sql"),$args);
         if ($Res)
 	        return $Res[0];
         else

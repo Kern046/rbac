@@ -1,6 +1,14 @@
 <?php
 #TODO: test on sqlite
 
+use PhpRbac\Database\Jf;
+
+$adapter = Jf::getConfig('adapter');
+$host = Jf::getConfig('host');
+$user = Jf::getConfig('user');
+$pass = Jf::getConfig('pass');
+$dbname = Jf::getConfig('dbname');
+
 if ($adapter=="pdo_mysql")
 {
 	try {

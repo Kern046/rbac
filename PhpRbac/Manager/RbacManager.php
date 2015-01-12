@@ -123,16 +123,17 @@ class RbacManager extends JModel
  							AND
  							TPdirect.ID=?";
         }
+        $tablePrefix = Jf::getConfig('table_prefix');
         $Res=Jf::sql ( "SELECT COUNT(*) AS Result
             FROM
-            {$this->tablePrefix()}userroles AS TUrel
+            {$tablePrefix}userroles AS TUrel
 
-            JOIN {$this->tablePrefix()}roles AS TRdirect ON (TRdirect.ID=TUrel.RoleID)
-            JOIN {$this->tablePrefix()}roles AS TR ON ( TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
+            JOIN {$tablePrefix}roles AS TRdirect ON (TRdirect.ID=TUrel.RoleID)
+            JOIN {$tablePrefix}roles AS TR ON ( TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
             JOIN
-            (	{$this->tablePrefix()}permissions AS TPdirect
-            JOIN {$this->tablePrefix()}permissions AS TP ON ( TPdirect.Lft BETWEEN TP.Lft AND TP.Rght)
-            JOIN {$this->tablePrefix()}rolepermissions AS TRel ON (TP.ID=TRel.PermissionID)
+            (	{$tablePrefix}permissions AS TPdirect
+            JOIN {$tablePrefix}permissions AS TP ON ( TPdirect.Lft BETWEEN TP.Lft AND TP.Rght)
+            JOIN {$tablePrefix}rolepermissions AS TRel ON (TP.ID=TRel.PermissionID)
             ) $LastPart",
             $UserID, $PermissionID );
 

@@ -48,10 +48,12 @@ class RbacUserManager extends JModel
 			else
 				$RoleID = Jf::$Rbac->Roles->titleId ( $Role );
 		}
+                
+                $tablePrefix = Jf::getConfig('table_prefix');
 
-		$R = Jf::sql ( "SELECT * FROM {$this->tablePrefix()}userroles AS TUR
-			JOIN {$this->tablePrefix()}roles AS TRdirect ON (TRdirect.ID=TUR.RoleID)
-			JOIN {$this->tablePrefix()}roles AS TR ON (TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
+		$R = Jf::sql ( "SELECT * FROM {$tablePrefix}userroles AS TUR
+			JOIN {$tablePrefix}roles AS TRdirect ON (TRdirect.ID=TUR.RoleID)
+			JOIN {$tablePrefix}roles AS TR ON (TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
 
 			WHERE
 			TUR.UserID=? AND TR.ID=?", $UserID, $RoleID );
@@ -84,10 +86,10 @@ class RbacUserManager extends JModel
 				$RoleID = Jf::$Rbac->Roles->titleId($Role);
 		}
 
-		$res = Jf::sql ( "INSERT INTO {$this->tablePrefix()}userroles
+		$res = Jf::sql ( 'INSERT INTO ' . Jf::getConfig('table_prefix') . 'userroles
 				(UserID,RoleID,AssignmentDate)
 				VALUES (?,?,?)
-				", $UserID, $RoleID, Jf::time () );
+				', $UserID, $RoleID, Jf::time () );
 		return $res >= 1;
 	}
 
@@ -119,7 +121,7 @@ class RbacUserManager extends JModel
 	            $RoleID = Jf::$Rbac->Roles->titleId($Role);
 	    }
 
-	    return Jf::sql("DELETE FROM {$this->tablePrefix()}userroles WHERE UserID=? AND RoleID=?", $UserID, $RoleID) >= 1;
+	    return Jf::sql('DELETE FROM ' . Jf::getConfig('table_prefix') . 'userroles WHERE UserID=? AND RoleID=?', $UserID, $RoleID) >= 1;
 	}
 
 	/**
@@ -137,10 +139,11 @@ class RbacUserManager extends JModel
 	   if ($UserID === null)
 		    throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
+           $tablePrefix = Jf::getConfig('table_prefix');
 		return Jf::sql ( "SELECT TR.*
 			FROM
-			{$this->tablePrefix()}userroles AS `TRel`
-			JOIN {$this->tablePrefix()}roles AS `TR` ON
+			{$tablePrefix}userroles AS `TRel`
+			JOIN {$tablePrefix}roles AS `TR` ON
 			(`TRel`.RoleID=`TR`.ID)
 			WHERE TRel.UserID=?", $UserID );
 	}
@@ -158,7 +161,7 @@ class RbacUserManager extends JModel
 		if ($UserID === null)
 		    throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
-		$Res = Jf::sql ( "SELECT COUNT(*) AS Result FROM {$this->tablePrefix()}userroles WHERE UserID=?", $UserID );
+		$Res = Jf::sql ('SELECT COUNT(*) AS Result FROM ' . Jf::getConfig('table_prefix') . 'userroles WHERE UserID=?', $UserID );
 		return (int)$Res [0] ['Result'];
 	}
 
@@ -174,16 +177,17 @@ class RbacUserManager extends JModel
 	{
 		if ($Ensure !== true)
 		{
-			throw new \Exception ("You must pass true to this function, otherwise it won't work.");
-			return;
+                    throw new \Exception ("You must pass true to this function, otherwise it won't work.");
+                    return;
 		}
-		$res = Jf::sql ( "DELETE FROM {$this->tablePrefix()}userroles" );
+                $tablePrefix = Jf::getConfig('table_prefix'); 
+		$res = Jf::sql ( "DELETE FROM {$tablePrefix}userroles" );
 
 		$Adapter = get_class(Jf::$Db);
 		if ($this->isMySql())
-			Jf::sql ( "ALTER TABLE {$this->tablePrefix()}userroles AUTO_INCREMENT =1 " );
+			Jf::sql ( "ALTER TABLE {$tablePrefix}userroles AUTO_INCREMENT =1 " );
 		elseif ($this->isSQLite())
-			Jf::sql ( "delete from sqlite_sequence where name=? ", $this->tablePrefix () . "_userroles" );
+			Jf::sql ( "delete from sqlite_sequence where name=? ", "{$tablePrefix}_userroles" );
 		else
 			throw new \Exception ("Rbac can not reset table on this type of database: {$Adapter}");
 		$this->assign ( "root", 1 /* root user */ );

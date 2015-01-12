@@ -16,12 +16,6 @@ class Rbac
 {
     public function __construct($unit_test = '')
     {
-        if ((string) $unit_test === 'unit_test') {
-            require_once __DIR__ . '/tests/database/database.config';
-        } else {
-            require_once __DIR__ . '/Database/database.config';
-        }
-
         $this->Permissions = Jf::$Rbac->Permissions;
         $this->Roles = Jf::$Rbac->Roles;
         $this->Users = Jf::$Rbac->Users;

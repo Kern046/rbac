@@ -100,7 +100,7 @@ abstract class BaseRbacManager extends JModel
 	 */
 	function count()
 	{
-		$Res = Jf::sql ( "SELECT COUNT(*) FROM {$this->tablePrefix()}{$this->type()}" );
+		$Res = Jf::sql ( "SELECT COUNT(*) FROM " . Jf::getConfig('table_prefix') . "{$this->type()}" );
 		return (int)$Res [0] ['COUNT(*)'];
 	}
 
@@ -147,9 +147,10 @@ abstract class BaseRbacManager extends JModel
 			throw new \Exception ("Unknown Group_Concat on this type of database: {$Adapter}");
 		}
 
+                $tablePrefix = Jf::getConfig('table_prefix');
 		$res = Jf::sql ( "SELECT node.ID,{$GroupConcat} AS Path
-				FROM {$this->tablePrefix()}{$this->type()} AS node,
-				{$this->tablePrefix()}{$this->type()} AS parent
+				FROM {$tablePrefix}{$this->type()} AS node,
+				{$tablePrefix}{$this->type()} AS parent
 				WHERE node.Lft BETWEEN parent.Lft AND parent.Rght
 				AND  node.Title=?
 				GROUP BY node.ID
@@ -162,16 +163,16 @@ abstract class BaseRbacManager extends JModel
 			return null;
 			// TODO: make the below SQL work, so that 1024 limit is over
 
-		$QueryBase = ("SELECT n0.ID  \nFROM {$this->tablePrefix()}{$this->type()} AS n0");
+		$QueryBase = ("SELECT n0.ID  \nFROM {$tablePrefix}{$this->type()} AS n0");
 		$QueryCondition = "\nWHERE 	n0.Title=?";
 
 		for($i = 1; $i < count ( $Parts ); ++ $i)
 		{
 			$j = $i - 1;
-			$QueryBase .= "\nJOIN 		{$this->tablePrefix()}{$this->type()} AS n{$i} ON (n{$j}.Lft BETWEEN n{$i}.Lft+1 AND n{$i}.Rght)";
+			$QueryBase .= "\nJOIN 		{$tablePrefix}{$this->type()} AS n{$i} ON (n{$j}.Lft BETWEEN n{$i}.Lft+1 AND n{$i}.Rght)";
 			$QueryCondition .= "\nAND 	n{$i}.Title=?";
 			// Forcing middle elements
-			$QueryBase .= "\nLEFT JOIN 	{$this->tablePrefix()}{$this->type()} AS nn{$i} ON (nn{$i}.Lft BETWEEN n{$i}.Lft+1 AND n{$j}.Lft-1)";
+			$QueryBase .= "\nLEFT JOIN 	{$tablePrefix}{$this->type()} AS nn{$i} ON (nn{$i}.Lft BETWEEN n{$i}.Lft+1 AND n{$j}.Lft-1)";
 			$QueryCondition .= "\nAND 	nn{$i}.Lft IS NULL";
 		}
 		$Query = $QueryBase . $QueryCondition;
@@ -345,20 +346,21 @@ abstract class BaseRbacManager extends JModel
 	 */
 	function reset($Ensure = false)
 	{
+            $tablePrefix = Jf::getConfig('table_prefix');
 		if ($Ensure !== true)
 		{
 			throw new \Exception ("You must pass true to this function, otherwise it won't work.");
 			return;
 		}
-		$res = Jf::sql ( "DELETE FROM {$this->tablePrefix()}{$this->type()}" );
+		$res = Jf::sql ( "DELETE FROM {$tablePrefix}{$this->type()}" );
 		$Adapter = get_class(Jf::$Db);
 		if ($this->isMySql())
-			Jf::sql ( "ALTER TABLE {$this->tablePrefix()}{$this->type()} AUTO_INCREMENT=1 " );
+			Jf::sql ( "ALTER TABLE {$tablePrefix}{$this->type()} AUTO_INCREMENT=1 " );
 		elseif ($this->isSQLite())
-			Jf::sql ( "delete from sqlite_sequence where name=? ", $this->tablePrefix () . "{$this->type()}" );
+                        Jf::sql ( "delete from sqlite_sequence where name=? ", "{$tablePrefix}{$this->type()}" );
 		else
 			throw new \Exception ( "Rbac can not reset table on this type of database: {$Adapter}" );
-		$iid = Jf::sql ( "INSERT INTO {$this->tablePrefix()}{$this->type()} (Title,Description,Lft,Rght) VALUES (?,?,?,?)", "root", "root",0,1 );
+		$iid = Jf::sql ( "INSERT INTO {$tablePrefix}{$this->type()} (Title,Description,Lft,Rght) VALUES (?,?,?,?)", "root", "root",0,1 );
 		return (int)$res;
 	}
 
@@ -396,9 +398,9 @@ abstract class BaseRbacManager extends JModel
 	            $PermissionID = Jf::$Rbac->Permissions->titleId($Permission);
 	    }
 
-	    return Jf::sql("INSERT INTO {$this->tablePrefix()}rolepermissions
+	    return Jf::sql('INSERT INTO ' . Jf::getConfig('table_prefix') . 'rolepermissions
 	        (RoleID,PermissionID,AssignmentDate)
-	        VALUES (?,?,?)", $RoleID, $PermissionID, Jf::time()) >= 1;
+	        VALUES (?,?,?)', $RoleID, $PermissionID, Jf::time()) >= 1;
 	}
 
 	/**
@@ -432,8 +434,8 @@ abstract class BaseRbacManager extends JModel
 	            $PermissionID = Jf::$Rbac->Permissions->titleId($Permission);
 	    }
 
-		return Jf::sql("DELETE FROM {$this->tablePrefix()}rolepermissions WHERE
-		    RoleID=? AND PermissionID=?", $RoleID, $PermissionID) == 1;
+		return Jf::sql('DELETE FROM ' . Jf::getConfig('table_prefix') . 'rolepermissions WHERE
+		    RoleID=? AND PermissionID=?', $RoleID, $PermissionID) == 1;
 	}
 
 	/**
@@ -451,13 +453,14 @@ abstract class BaseRbacManager extends JModel
 			throw new \Exception ("You must pass true to this function, otherwise it won't work.");
 			return;
 		}
-		$res = Jf::sql ( "DELETE FROM {$this->tablePrefix()}rolepermissions" );
+                $tablePrefix = Jf::getConfig('table_prefix');
+		$res = Jf::sql ( "DELETE FROM {$tablePrefix}rolepermissions" );
 
 		$Adapter = get_class(Jf::$Db);
 		if ($this->isMySql())
-			Jf::sql ( "ALTER TABLE {$this->tablePrefix()}rolepermissions AUTO_INCREMENT =1 " );
+			Jf::sql ( "ALTER TABLE {$tablePrefix}rolepermissions AUTO_INCREMENT =1 " );
 		elseif ($this->isSQLite())
-			Jf::sql ( "delete from sqlite_sequence where name=? ", $this->tablePrefix () . "_rolepermissions" );
+			Jf::sql ( "delete from sqlite_sequence where name=? ", "{$tablePrefix}_rolepermissions" );
 		else
 			throw new \Exception ( "Rbac can not reset table on this type of database: {$Adapter}" );
 		$this->assign ( $this->rootId(), $this->rootId());

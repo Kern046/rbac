@@ -13,19 +13,28 @@ class Jf
 
 	public static $Db = null;
 
-	public static $TABLE_PREFIX;
-
 	private static $groupConcatLimitChanged = false;
+        
+        private static $config;
 
 	public static function setTablePrefix($tablePrefix)
 	{
 	    self::$TABLE_PREFIX = $tablePrefix;
 	}
-
-	public static function tablePrefix()
-	{
-	    return self::$TABLE_PREFIX;
-	}
+        
+        public static function loadConfig($file)
+        {
+            self::$config = json_decode(file_get_contents($file), true);
+        }
+        
+        public static function getConfig($key)
+        {
+            if(!isset(self::$config[$key]))
+            {
+                throw new \InvalidArgumentException("$key is not a valid configuration");
+            }
+            return self::$config[$key];
+        }
 
 	/**
 	 * The Jf::sql function. The behavior of this function is as follows:
@@ -205,6 +214,6 @@ class Jf
 	}
 }
 
-Jf::setTablePrefix($tablePrefix);
+Jf::loadConfig(__DIR__.'/database_config.json');
 Jf::$Rbac=new RbacManager();
 require_once __DIR__."/../setup.php";
