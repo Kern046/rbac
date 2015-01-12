@@ -51,7 +51,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         array_shift($args);
         $Query="SELECT {$this->id()} AS ID FROM {$this->table()} WHERE $ConditionString LIMIT 1";
         array_unshift($args,$Query);
-        $Res=call_user_func_array(("Jf::sql"),$args);
+        $Res=call_user_func_array(("PhpRbac\Database\Jf::sql"),$args);
         if ($Res)
         return $Res[0]["ID"];
         else
@@ -70,7 +70,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         array_shift($args);
         $Query="SELECT * FROM {$this->table()} WHERE $ConditionString";
         array_unshift($args,$Query);
-        $Res=call_user_func_array(("Jf::sql"),$args);
+        $Res=call_user_func_array(("PhpRbac\Database\Jf::sql"),$args);
         if ($Res)
 	        return $Res[0];
         else
@@ -148,7 +148,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
 			WHERE $ConditionString LIMIT 1";
 
         array_unshift($Arguments,$Query);
-        $Info=call_user_func_array("Jf::sql",$Arguments);
+        $Info=call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
         if (!$Info)
         {
         	$this->unlock();
@@ -180,7 +180,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
 			WHERE $ConditionString";
 
         array_unshift($Arguments,$Query);
-        $Info=call_user_func_array("Jf::sql",$Arguments);
+        $Info=call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
 
         $Info=$Info[0];
 
@@ -235,7 +235,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
             ORDER BY node.{$this->left()}";
 
         array_unshift($Arguments,$Query);
-        $Res=call_user_func_array("Jf::sql",$Arguments);
+        $Res=call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
 
         return $Res;
     }
@@ -274,7 +274,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
             ORDER BY node.{$this->left()}";
 
         array_unshift($Arguments,$Query);
-        $Res=call_user_func_array("Jf::sql",$Arguments);
+        $Res=call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
         if ($Res)
         foreach ($Res as &$v)
             unset($v["Depth"]);
@@ -300,7 +300,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
             ORDER BY parent.{$this->left()}";
 
         array_unshift($Arguments,$Query);
-        $Res=call_user_func_array("Jf::sql",$Arguments);
+        $Res=call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
         return $Res;
     }
 
@@ -329,7 +329,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
 
             $Arguments=array_merge($Arguments,$Arguments);
             array_unshift($Arguments,$Query);
-            $Res=call_user_func_array("Jf::sql",$Arguments);
+            $Res=call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
         }
         else
         $Res=Jf::sql("SELECT *
@@ -384,7 +384,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         array_unshift($Values,$Sibl["Right"]+1);
         array_unshift($Values,$Query);
 
-        $Res=call_user_func_array("Jf::sql",$Values);
+        $Res=call_user_func_array("PhpRbac\Database\Jf::sql",$Values);
 		$this->unlock();
         return $Res;
     }
@@ -407,7 +407,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         $Query="SELECT {$this->right()} AS `Right`, {$this->left()} AS `Left`".
         	" FROM {$this->table()} $ConditionString";
         array_unshift($Arguments,$Query);
-        $Parent=call_user_func_array("Jf::sql",$Arguments);
+        $Parent=call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
 
         $Parent=$Parent[0];
         if ($Parent==null)
@@ -432,7 +432,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         array_unshift($Values,$Parent["Right"]+1);
         array_unshift($Values,$Parent["Right"]);
         array_unshift($Values,$Query);
-        $Res=call_user_func_array("Jf::sql",$Values);
+        $Res=call_user_func_array("PhpRbac\Database\Jf::sql",$Values);
         $this->unlock();
         return $Res;
     }
@@ -468,7 +468,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         array_unshift($Values,$Query);
         $Arguments=array_merge($Values,$Arguments);
 
-        return call_user_func_array("Jf::sql",$Arguments);
+        return call_user_func_array("PhpRbac\Database\Jf::sql",$Arguments);
     }
 
 }
