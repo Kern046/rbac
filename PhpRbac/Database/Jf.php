@@ -16,6 +16,12 @@ class Jf
 	private static $groupConcatLimitChanged = false;
         
         private static $config;
+        
+        private static $installers = [
+            'mysql'     => 'MysqliInstaller',
+            'pdo_mysql' => 'PdoMysqlInstaller',
+            'pdo_sqlite'=> 'PdoSqliteInstaller'
+        ];
 
 	public static function setTablePrefix($tablePrefix)
 	{
@@ -36,6 +42,22 @@ class Jf
             {
                 throw new \InvalidArgumentException('$data must be a JSON file or an array');
             }
+        }
+        
+        public static function loadConnection()
+        {
+            if(!isset(self::$installers[self::$config['adapter']]))
+            {
+                throw new \ErrorException('The given adapter does not match any installer');
+            }
+            $installerClass = 'PhpRbac\\Database\\Installer\\' . self::$installers[self::$config['adapter']];
+            $installer = new $installerClass();
+            $installer->init(
+                self::$config['host'],
+                self::$config['user'],
+                self::$config['pass'],
+                self::$config['dbname']
+            );
         }
         
         public static function getConfig($key)
@@ -226,5 +248,5 @@ class Jf
 }
 
 Jf::loadConfig(__DIR__.'/database_config.json');
-Jf::$Rbac=new RbacManager();
-require_once __DIR__."/../setup.php";
+Jf::loadConnection();
+Jf::$Rbac = new RbacManager();
