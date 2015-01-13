@@ -30,13 +30,13 @@ class Jf
         
         public static function loadConfig($data)
         {
-            if(is_file($data))
-            {
-                self::$config = json_decode(file_get_contents($data), true);
-            }
-            elseif(is_array($data))
+            if(is_array($data))
             {
                 self::$config = $data;
+            }
+            elseif(is_file($data))
+            {
+                self::$config = json_decode(file_get_contents($data), true);
             }
             else
             {
