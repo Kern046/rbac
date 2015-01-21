@@ -17,6 +17,7 @@ class PdoSqliteInstaller extends BasicInstaller
             return true;
         }
         Jf::$Db = new \PDO("sqlite:{$dbname}", $user, $pass);
+        return true;
     }
     
     /**
@@ -35,6 +36,7 @@ class PdoSqliteInstaller extends BasicInstaller
                 Jf::$Db->query($query);
             }
         }
+        
 	Jf::$Rbac->reset(true);
     }
 }

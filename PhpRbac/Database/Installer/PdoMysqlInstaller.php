@@ -15,9 +15,9 @@ class PdoMysqlInstaller extends BasicInstaller
         {
             Jf::$Db = new \PDO("mysql:host={$host};dbname={$dbname}",$user,$pass);
 	}
-	catch (PDOException $e)
+	catch (\PDOException $e)
 	{
-            if ($e->getCode()==1049)
+            if ($e->getCode() === 1049)
             {
                 $this->install($host, $user, $pass, $dbname);
                 return true;
@@ -40,12 +40,12 @@ class PdoMysqlInstaller extends BasicInstaller
         
 	if (is_array($queries))
         {
-            foreach ($sqls as $query)
+            foreach ($queries as $query)
             {
                 $db->query($query);
             }
         }
-	Jf::$Db=new PDO("mysql:host={$host};dbname={$dbname}", $user, $pass);
+	Jf::$Db = new \PDO("mysql:host={$host};dbname={$dbname}", $user, $pass);
 	Jf::$Rbac->reset(true);
     }
 }
