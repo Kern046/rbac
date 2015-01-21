@@ -24,7 +24,7 @@ class PdoSqliteInstaller extends BasicInstaller
      */
     public function install($host, $user, $pass, $dbname)
     {
-	Jf::$Db=new PDO("sqlite:{$dbname}", $user, $pass);
+	Jf::$Db=new \PDO("sqlite:{$dbname}", $user, $pass);
         
 	$queries = $this->getSqlQueries('sqlite');
         

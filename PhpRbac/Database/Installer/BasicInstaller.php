@@ -19,7 +19,7 @@ abstract class BasicInstaller implements InstallerInterface
      */
     function getSqlQueries($dbms)
     {
-        $file = dirname(dirname(dirname(__DIR__))) . "/database/{$dbms}.sql";
+        $file = dirname(dirname(dirname(__DIR__))) . "/{$dbms}.sql";
         
         if(!is_file($file))
         {
