@@ -13,7 +13,7 @@ class MysqliInstaller extends BasicInstaller
     {
         try
         {
-            Jf::$Db = new mysqli($host, $user, $pass, $dbname);
+            Jf::$Db = new \mysqli($host, $user, $pass, $dbname);
         }
         catch (Exception $ex)
         {
