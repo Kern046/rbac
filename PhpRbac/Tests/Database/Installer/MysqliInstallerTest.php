@@ -1,8 +1,48 @@
 <?php
 
-/* 
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+namespace PhpRbac\Tests\Database\Installer;
 
+use PhpRbac\Database\Installer\MysqliInstaller;
+
+use PhpRbac\Database\Jf;
+
+class MysqliInstallerTest extends \PHPUnit_Framework_TestCase
+{
+    public function setUp()
+    {
+        Jf::$Db->query('DROP DATABASE kilix_rbac_test');
+    }
+    
+    /**
+     * @dataProvider configurationProvider
+     */
+    public function test($config)
+    {
+        Jf::loadConfig($config);
+        
+        $installer = new MysqliInstaller();
+        $installationSuccess = $installer->init(
+            $config['host'],
+            $config['user'],
+            $config['pass'],
+            $config['dbname']
+        );
+        
+        $this->assertTrue($installationSuccess);
+    }
+    
+    public function configurationProvider()
+    {
+        return [
+            [
+                [
+                    'host' => 'localhost',
+                    'user' => 'root',
+                    'pass' => 'vagrant',
+                    'dbname' => 'kilix_rbac_test',
+                    'table_prefix' => 'kilix_rbac_'
+                ]
+            ]
+        ];
+    }
+}

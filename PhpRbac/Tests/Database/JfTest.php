@@ -8,6 +8,15 @@ use PhpRbac\Rbac;
 
 class JfTest extends \PHPUnit_Framework_TestCase
 {
+    public static function setUpBeforeClass()
+    {
+        $config = self::configProvider()[0][0];
+        $config['adapter'] = 'pdo_mysql';
+        
+        Jf::loadConfig($config);
+        Jf::loadConnection();
+    }
+    
     public function testSetTablePrefix()
     {
         $this->assertNull(Jf::$TABLE_PREFIX);
@@ -108,7 +117,7 @@ class JfTest extends \PHPUnit_Framework_TestCase
         $this->assertCount(1, $query);
     }
     
-    public function configProvider()
+    public static function configProvider()
     {
         return [
             [
