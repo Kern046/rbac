@@ -2,6 +2,8 @@
 
 namespace PhpRbac\Database\Installer;
 
+use PhpRbac\Database\Jf;
+
 abstract class BasicInstaller implements InstallerInterface
 {
     /**
@@ -19,7 +21,7 @@ abstract class BasicInstaller implements InstallerInterface
      */
     function getSqlQueries($dbms)
     {
-        $file = dirname(dirname(dirname(__DIR__))) . "/{$dbms}.sql";
+        $file = dirname(__DIR__) . "/{$dbms}.sql";
         
         if(!is_file($file))
         {

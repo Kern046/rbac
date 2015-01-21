@@ -93,10 +93,10 @@ class Jf
 		if (self::$Db instanceof \PDO)
 			return call_user_func_array ( "self::sqlPdo", $args );
 		else
-			if (self::$Db instanceof mysqli)
+			if (self::$Db instanceof \mysqli)
 				return call_user_func_array ( "self::sqlMysqli", $args );
 			else
-				throw new Exception ( "Unknown database interface type." );
+				throw new \Exception ( "Unknown database interface type." );
 	}
 
 	static function sqlPdo($Query)

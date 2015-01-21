@@ -15,14 +15,14 @@ class MysqliInstaller extends BasicInstaller
         {
             Jf::$Db = new \mysqli($host, $user, $pass, $dbname);
         }
-        catch (Exception $ex)
+        catch (\Exception $ex)
         {
-            if ($e->getCode()==1049)
+            if ($ex->getCode() === 2)
             {
                 $this->install($host, $user, $pass, $dbname);
                 return true;
             }
-            throw $e;	
+            throw $ex;	
         }
     }
     
@@ -34,7 +34,7 @@ class MysqliInstaller extends BasicInstaller
 	$queries = $this->getSqlQueries('mysql');
         
 	$db = new \mysqli($host, $user, $pass);
-	$db->query("CREATE DATABASE $dbname");
+	$db->query("CREATE DATABASE IF NOT EXISTS $dbname");
 	$db->select_db($dbname);
         
 	if (is_array($queries))
