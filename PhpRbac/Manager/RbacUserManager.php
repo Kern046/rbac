@@ -180,7 +180,7 @@ class RbacUserManager extends JModel
                     throw new \Exception ("You must pass true to this function, otherwise it won't work.");
                     return;
 		}
-                $tablePrefix = Jf::getConfig('table_prefix'); 
+                $tablePrefix = Jf::getConfig('table_prefix');
 		$res = Jf::sql ( "DELETE FROM {$tablePrefix}userroles" );
 
 		$Adapter = get_class(Jf::$Db);

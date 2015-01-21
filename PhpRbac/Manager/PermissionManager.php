@@ -26,12 +26,12 @@ class PermissionManager extends BaseRbacManager
 
 	protected function type()
 	{
-		return "permissions";
+            return "permissions";
 	}
 
 	function __construct()
 	{
-		$this->permissions = new FullNestedSet ( Jf::getConfig('table_prefix') . "permissions", "ID", "Lft", "Rght" );
+            $this->permissions = new FullNestedSet ( Jf::getConfig('table_prefix') . "permissions", "ID", "Lft", "Rght" );
 	}
 
 	/**
