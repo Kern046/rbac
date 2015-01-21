@@ -15,6 +15,8 @@ class Jf
 
 	private static $groupConcatLimitChanged = false;
         
+	public static $TABLE_PREFIX;
+        
         private static $config;
         
         private static $installers = [
