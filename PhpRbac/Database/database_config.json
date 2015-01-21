@@ -4,5 +4,5 @@
     "user"          : "root",
     "pass"          : "vagrant",
     "dbname"        : "rbac",
-    "table_prefix"  : "phprbac_"
+    "table_prefix"  : "kilix_rbac_"
 }
