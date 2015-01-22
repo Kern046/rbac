@@ -5,7 +5,7 @@ namespace PhpRbac\Tests;
 use PhpRbac\Rbac;
 use PhpRbac\Database\Jf;
 
-class RbacTest extends \PHPUnit_Framework_TestCase
+class RbacTest extends RbacTestCase
 {
     /** @var Rbac **/
     private $rbac;
@@ -13,8 +13,8 @@ class RbacTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         $this->rbac = new Rbac();
-        
-        Jf::loadConfig($this->configurationProvider()[0][0]);
+
+        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
         Jf::loadConnection();
         
         $this->rbac->reset(true);
@@ -43,21 +43,5 @@ class RbacTest extends \PHPUnit_Framework_TestCase
     public function testTablePrefix()
     {
         $this->assertInternalType('string', $this->rbac->tablePrefix());
-    }
-    
-    public function configurationProvider()
-    {
-        return [
-            [
-                [
-                    "adapter"       => "pdo_mysql",
-                    "host"          => "localhost",
-                    "user"          => "root",
-                    "pass"          => "vagrant",
-                    "dbname"        => "kilix_rbac_test",
-                    "table_prefix"  => "kilix_rbac_"
-                ]
-            ]
-        ];
     }
 }

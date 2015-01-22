@@ -4,12 +4,11 @@ namespace PhpRbac\Tests\Manager;
 
 use PhpRbac\Manager\RbacManager;
 use PhpRbac\Rbac;
-
 use PhpRbac\Exception\RbacUserNotProvidedException;
-
 use PhpRbac\Database\Jf;
+use PhpRbac\Tests\RbacTestCase;
 
-class RbacManagerTest extends \PHPUnit_Framework_TestCase
+class RbacManagerTest extends RbacTestCase
 {
     /** @var RbacManager **/
     private $manager;
@@ -17,8 +16,8 @@ class RbacManagerTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         $rbac = new Rbac();
-        
-        Jf::loadConfig($this->configurationProvider()[0][0]);
+
+        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
         Jf::loadConnection();
         
         $rbac->reset(true);
@@ -49,7 +48,7 @@ class RbacManagerTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @expectedException PhpRbac\Exception\RbacUserNotProvidedException
+     * @expectedException \PhpRbac\Exception\RbacUserNotProvidedException
      */
     public function testInvalidCheck()
     {
@@ -62,7 +61,7 @@ class RbacManagerTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @expectedException PhpRbac\Exception\RbacUserNotProvidedException
+     * @expectedException \PhpRbac\Exception\RbacUserNotProvidedException
      */
     public function testInvalidEnforce()
     {
@@ -84,21 +83,5 @@ class RbacManagerTest extends \PHPUnit_Framework_TestCase
     public function testInvalidReset()
     {
         $this->manager->reset();
-    }
-    
-    public function configurationProvider()
-    {
-        return [
-            [
-                [
-                    "adapter"       => "pdo_mysql",
-                    "host"          => "localhost",
-                    "user"          => "root",
-                    "pass"          => "vagrant",
-                    "dbname"        => "kilix_rbac_test",
-                    "table_prefix"  => "kilix_rbac_"
-                ]
-            ]
-        ];
     }
 }

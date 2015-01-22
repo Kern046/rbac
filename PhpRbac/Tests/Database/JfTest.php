@@ -5,8 +5,9 @@ namespace PhpRbac\Tests\Database;
 use PhpRbac\Database\Jf;
 
 use PhpRbac\Rbac;
+use PhpRbac\Tests\RbacTestCase;
 
-class JfTest extends \PHPUnit_Framework_TestCase
+class JfTest extends RbacTestCase
 {
     public static function setUpBeforeClass()
     {
@@ -121,14 +122,7 @@ class JfTest extends \PHPUnit_Framework_TestCase
     {
         return [
             [
-                [
-                    'adapter' => 'fakeAdapter',
-                    'host' => 'localhost',
-                    'user' => 'root',
-                    'pass' => 'vagrant',
-                    'dbname'=> 'kilix_rbac_test',
-                    'table_prefix' => 'kilix_rbac_'
-                ]
+                static::getSQLConfig('fakeAdapter'),
             ]
         ];
     }

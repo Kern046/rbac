@@ -5,13 +5,19 @@ namespace PhpRbac\Tests\Database\Installer;
 use PhpRbac\Database\Installer\PdoSqliteInstaller;
 
 use PhpRbac\Database\Jf;
+use PhpRbac\Tests\RbacTestCase;
 
-class PdoSqliteInstallerTest extends \PHPUnit_Framework_TestCase
+class PdoSqliteInstallerTest extends RbacTestCase
 {
     public function setUp()
     {
+        $config = static::getSQLConfig('pdo_sqlite');
+
         Jf::$Db->query('DROP DATABASE kilix_rbac_test');
-        unlink('kilix_rbac_test');
+        if ($config['dbname'] != ':memory:') {
+            unlink($config['dbname']);
+        }
+
     }
     
     /**
@@ -46,13 +52,7 @@ class PdoSqliteInstallerTest extends \PHPUnit_Framework_TestCase
     {
         return [
             [
-                [
-                    'host' => 'localhost',
-                    'user' => 'root',
-                    'pass' => 'vagrant',
-                    'dbname' => 'kilix_rbac_test',
-                    'table_prefix' => 'kilix_rbac_'
-                ]
+                static::getSQLConfig('pdo_sqlite'),
             ]
         ];
     }

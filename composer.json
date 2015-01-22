@@ -25,5 +25,8 @@
             "psr-0" : {
                 "PhpRbac" : ""
             }
+	},
+	"require-dev": {
+		"phpunit/phpunit": "~4.2"
 	}
 }

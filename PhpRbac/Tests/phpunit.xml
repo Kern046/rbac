@@ -1,7 +1,0 @@
-<phpunit bootstrap="./bootstrap.php">
-    <testsuites>
-        <testsuite name="Wrapper">
-            <directory>.</directory>
-        </testsuite>
-    </testsuites>
-</phpunit>

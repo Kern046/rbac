@@ -5,8 +5,9 @@ namespace PhpRbac\Tests\Manager;
 use PhpRbac\Manager\UserManager;
 use PhpRbac\Rbac;
 use PhpRbac\Database\Jf;
+use PhpRbac\Tests\RbacTestCase;
 
-class UserManagerTest extends \PHPUnit_Framework_TestCase
+class UserManagerTest extends RbacTestCase
 {
     /** @var RoleManager **/
     private $manager;
@@ -15,7 +16,7 @@ class UserManagerTest extends \PHPUnit_Framework_TestCase
     {
         $rbac = new Rbac();
         
-        Jf::loadConfig($this->configurationProvider()[0][0]);
+        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
         Jf::loadConnection();
         
         $rbac->reset(true);
@@ -66,21 +67,5 @@ class UserManagerTest extends \PHPUnit_Framework_TestCase
     public function testRoleCount()
     {
         $this->assertequals(1, $this->manager->roleCount(1));
-    }
-    
-    public function configurationProvider()
-    {
-        return [
-            [
-                [
-                    "adapter"       => "pdo_mysql",
-                    "host"          => "localhost",
-                    "user"          => "root",
-                    "pass"          => "vagrant",
-                    "dbname"        => "kilix_rbac_test",
-                    "table_prefix"  => "kilix_rbac_"
-                ]
-            ]
-        ];
     }
 }

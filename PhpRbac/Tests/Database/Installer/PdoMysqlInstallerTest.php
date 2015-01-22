@@ -5,8 +5,9 @@ namespace PhpRbac\Tests\Database\Installer;
 use PhpRbac\Database\Installer\PdoMysqlInstaller;
 
 use PhpRbac\Database\Jf;
+use PhpRbac\Tests\RbacTestCase;
 
-class PdoMysqlInstallerTest extends \PHPUnit_Framework_TestCase
+class PdoMysqlInstallerTest extends RbacTestCase
 {
     public function setUp()
     {
@@ -30,18 +31,12 @@ class PdoMysqlInstallerTest extends \PHPUnit_Framework_TestCase
         
         $this->assertTrue($installationSuccess);
     }
-    
+
     public function configurationProvider()
     {
         return [
             [
-                [
-                    'host' => 'localhost',
-                    'user' => 'root',
-                    'pass' => 'vagrant',
-                    'dbname' => 'kilix_rbac_test',
-                    'table_prefix' => 'kilix_rbac_'
-                ]
+                static::getSQLConfig('pdo_mysql'),
             ]
         ];
     }
