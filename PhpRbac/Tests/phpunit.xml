@@ -4,7 +4,4 @@
             <directory>.</directory>
         </testsuite>
     </testsuites>
-    <php>
-    	<var name="UNIT_TEST" value="true" />
-    </php>
 </phpunit>
