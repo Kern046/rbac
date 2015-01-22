@@ -23,7 +23,8 @@
 	],
 	"autoload" : {
             "psr-0" : {
-                "PhpRbac" : ""
+                "PhpRbac\\" : "src/",
+			  	"PhpRbac\\Tests\\" : "tests/"
             }
 	},
 	"require-dev": {
