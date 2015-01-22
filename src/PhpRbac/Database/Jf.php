@@ -11,6 +11,9 @@ class Jf
 	 */
 	public static $Rbac;
 
+	/**
+	 * @var \PDO
+	 */
 	public static $Db = null;
 
 	private static $groupConcatLimitChanged = false;
@@ -237,6 +240,7 @@ class Jf
 	}
 }
 
+
 Jf::loadConfig(__DIR__.'/database_config.json');
-Jf::loadConnection();
 Jf::$Rbac = new RbacManager();
+Jf::loadConnection();

@@ -32,20 +32,18 @@ class MysqliInstaller extends BasicInstaller
      */
     public function install($host, $user, $pass, $dbname)
     {
-	$queries = $this->getSqlQueries('mysql');
-        
-	$db = new \mysqli($host, $user, $pass);
-	$db->query("CREATE DATABASE IF NOT EXISTS $dbname");
-	$db->select_db($dbname);
-        
-	if (is_array($queries))
-        {
-            foreach ($queries as $query)
-            {
+        $queries = $this->getSqlQueries('mysql');
+
+        $db = new \mysqli($host, $user, $pass);
+        $db->query("CREATE DATABASE IF NOT EXISTS $dbname");
+        $db->select_db($dbname);
+
+        if (is_array($queries)) {
+            foreach ($queries as $query) {
                 $db->query($query);
             }
         }
-	Jf::$Db = new \mysqli($host, $user, $pass, $dbname);
-	Jf::$Rbac->reset(true);
+        Jf::$Db = new \mysqli($host, $user, $pass, $dbname);
+        Jf::$Rbac->reset(true);
     }
 }

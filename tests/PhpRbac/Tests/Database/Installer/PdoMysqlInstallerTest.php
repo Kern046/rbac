@@ -11,6 +11,8 @@ class PdoMysqlInstallerTest extends RbacTestCase
 {
     public function setUp()
     {
+        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
+        Jf::loadConnection();
         Jf::$Db->query('DROP DATABASE kilix_rbac_test');
     }
     

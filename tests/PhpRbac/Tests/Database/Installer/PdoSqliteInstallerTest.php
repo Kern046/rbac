@@ -13,6 +13,9 @@ class PdoSqliteInstallerTest extends RbacTestCase
     {
         $config = static::getSQLConfig('pdo_sqlite');
 
+        Jf::loadConfig($config);
+        Jf::loadConnection();
+
         Jf::$Db->query('DROP DATABASE kilix_rbac_test');
         if ($config['dbname'] != ':memory:') {
             unlink($config['dbname']);
