@@ -1,0 +1,8 @@
+{
+    "adapter"       : "pdo_mysql",
+    "host"          : "localhost",
+    "user"          : "root",
+    "pass"          : "vagrant",
+    "dbname"        : "rbac",
+    "table_prefix"  : "kilix_rbac_"
+}

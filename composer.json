@@ -1,5 +1,5 @@
 {
-	"name" : "owasp/phprbac",
+	"name" : "kilix/rbac",
 	"type" : "library",
 	"description" : "PHP-RBAC is the de-facto authorization library for PHP. It provides developers with NIST Level 2 Standard Role Based Access Control and more, in the fastest implementation yet.",
 	"keywords" : [
@@ -8,7 +8,7 @@
 		"security"
 	],
 	"homepage" : "http://phprbac.net/",
-	"license" : "CC-BY-SA-3.0",
+	"license" : "Apache-2.0",
 	"authors" : [{
 			"name" : "AbiusX",
 			"email" : "me@abiusx.com",
@@ -22,8 +22,11 @@
 		}
 	],
 	"autoload" : {
-		"psr-0" : {
-			"PhpRbac" : "PhpRbac/src"
-		}
+            "psr-0" : {
+                "PhpRbac" : ""
+            }
+	},
+	"require-dev": {
+		"phpunit/phpunit": "~4.2"
 	}
 }

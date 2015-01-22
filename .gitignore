@@ -6,5 +6,8 @@
 *phprbac.sqlite3*
 *Doxygen*
 *phpdoc*
-index.php
-vendor
+/nbproject/
+/vendor/
+/build
+phpunit.xml
+composer.lock
