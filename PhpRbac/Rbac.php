@@ -35,6 +35,6 @@ class Rbac
 
     public function tablePrefix()
     {
-        return Jf::$Rbac->tablePrefix();
+        return Jf::getConfig('table_prefix');
     }
 }

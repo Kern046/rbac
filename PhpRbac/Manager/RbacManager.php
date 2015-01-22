@@ -25,7 +25,7 @@ class RbacManager extends JModel
 {
     function __construct()
     {
-        $this->Users = new RbacUserManager ();
+        $this->Users = new UserManager ();
         $this->Roles = new RoleManager ();
         $this->Permissions = new PermissionManager ();
     }
@@ -150,18 +150,17 @@ class RbacManager extends JModel
     *
     * @throws RbacUserNotProvidedException
     */
-	function enforce($Permission, $UserID = null)
-	{
+    function enforce($Permission, $UserID = null)
+    {
 	if ($UserID === null)
-                throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
+            throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
-		if (! $this->check($Permission, $UserID)) {
+        if (! $this->check($Permission, $UserID)) {
             header('HTTP/1.1 403 Forbidden');
             die("<strong>Forbidden</strong>: You do not have permission to access this resource.");
         }
-
         return true;
-	}
+    }
 
     /**
     * Remove all roles, permissions and assignments

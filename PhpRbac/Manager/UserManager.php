@@ -19,7 +19,7 @@ use PhpRbac\Exception\RbacUserNotProvidedException;
  * @author abiusx
  * @version 1.0
  */
-class RbacUserManager extends JModel
+class UserManager extends JModel
 {
 	/**
 	 * Checks to see whether a user has a role or not
@@ -107,7 +107,7 @@ class RbacUserManager extends JModel
 	function unassign($Role, $UserID = null)
 	{
 	    if ($UserID === null)
-	        throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
+                throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
 
 	    if (is_numeric($Role))
 	    {
