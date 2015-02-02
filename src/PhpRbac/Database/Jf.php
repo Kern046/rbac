@@ -2,15 +2,8 @@
 
 namespace PhpRbac\Database;
 
-use PhpRbac\Manager\RbacManager;
-
 class Jf
 {
-	/**
-	 * @var RbacManager
-	 */
-	public static $Rbac;
-
 	/**
 	 * @var \PDO
 	 */
@@ -239,8 +232,3 @@ class Jf
 		return time();
 	}
 }
-
-
-Jf::loadConfig(__DIR__.'/database_config.json');
-Jf::$Rbac = new RbacManager();
-Jf::loadConnection();

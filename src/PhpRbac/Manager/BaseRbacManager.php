@@ -3,6 +3,9 @@ namespace PhpRbac\Manager;
 
 use PhpRbac\Database\JModel;
 use PhpRbac\Database\Jf;
+
+use PhpRbac\Rbac;
+
 /**
  * Rbac base class, it contains operations that are essentially the same for
  * permissions and roles
@@ -13,7 +16,6 @@ use PhpRbac\Database\Jf;
  */
 abstract class BaseRbacManager extends JModel
 {
-
 	function rootId()
 	{
 		return 1;
@@ -378,25 +380,16 @@ abstract class BaseRbacManager extends JModel
 	 */
 	function assign($Role, $Permission)
 	{
-	    if (is_numeric($Role))
-	    {
-	        $RoleID = $Role;
-	    } else {
-	        if (substr($Role, 0, 1) == "/")
-	            $RoleID = Jf::$Rbac->Roles->pathId($Role);
-	        else
-	            $RoleID = Jf::$Rbac->Roles->titleId($Role);
-	    }
-
-	    if (is_numeric($Permission))
-	    {
-	        $PermissionID = $Permission;
-	    }  else {
-	        if (substr($Permission, 0, 1) == "/")
-	            $PermissionID = Jf::$Rbac->Permissions->pathId($Permission);
-	        else
-	            $PermissionID = Jf::$Rbac->Permissions->titleId($Permission);
-	    }
+            $RoleID = Rbac::getInstance()
+                ->getManager()
+                ->getRoleManager()
+                ->getId($Role)
+            ;
+            $PermissionID = Rbac::getInstance()
+                ->getManager()
+                ->getPermissionManager()
+                ->getId($Permission)
+            ;
 
 	    return Jf::sql('INSERT INTO ' . Jf::getConfig('table_prefix') . 'rolepermissions
 	        (RoleID,PermissionID,AssignmentDate)
@@ -414,25 +407,16 @@ abstract class BaseRbacManager extends JModel
 	 */
 	function unassign($Role, $Permission)
 	{
-	    if (is_numeric($Role))
-	    {
-	        $RoleID = $Role;
-	    }  else {
-	        if (substr($Role, 0, 1) == "/")
-	            $RoleID = Jf::$Rbac->Roles->pathId($Role);
-	        else
-	            $RoleID = Jf::$Rbac->Roles->titleId($Role);
-	    }
-
-	    if (is_numeric($Permission))
-	    {
-	        $PermissionID = $Permission;
-	    }  else {
-	        if (substr($Permission, 0, 1) == "/")
-	            $PermissionID = Jf::$Rbac->Permissions->pathId($Permission);
-	        else
-	            $PermissionID = Jf::$Rbac->Permissions->titleId($Permission);
-	    }
+            $RoleID = Rbac::getInstance()
+                ->getManager()
+                ->getRoleManager()
+                ->getId($Role)
+            ;
+            $PermissionID = Rbac::getInstance()
+                ->getManager()
+                ->getPermissionManager()
+                ->getId($Permission)
+            ;
 
 		return Jf::sql('DELETE FROM ' . Jf::getConfig('table_prefix') . 'rolepermissions WHERE
 		    RoleID=? AND PermissionID=?', $RoleID, $PermissionID) == 1;

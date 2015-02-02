@@ -3,6 +3,9 @@ namespace PhpRbac\Manager;
 
 use PhpRbac\NestedSet\FullNestedSet;
 use PhpRbac\Database\Jf;
+
+use PhpRbac\Rbac;
+
 /**
  * @defgroup phprbac_permission_manager Documentation regarding Permission Manager Functionality
  * @ingroup phprbac
@@ -33,6 +36,24 @@ class PermissionManager extends BaseRbacManager
 	{
             $this->permissions = new FullNestedSet ( Jf::getConfig('table_prefix') . "permissions", "ID", "Lft", "Rght" );
 	}
+        
+    /**
+     * Get ID from a path or a title
+     * 
+     * @param string $item
+     * @return integer
+     */
+    public function getId($item)
+    {
+        return
+            (is_numeric($item))
+            ? $item
+            : 
+                (substr($item, 0, 1) == '/')
+                ? Rbac::getInstance()->getManager()->getPermissionManager()->pathId($item)
+                : Rbac::getInstance()->getManager()->getPermissionManager()->titleId($item)
+        ;
+    }
 
 	/**
 	 * Remove permissions from system

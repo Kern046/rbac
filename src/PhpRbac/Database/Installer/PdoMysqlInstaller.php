@@ -3,6 +3,7 @@
 namespace PhpRbac\Database\Installer;
 
 use PhpRbac\Database\Jf;
+use PhpRbac\Rbac;
 
 class PdoMysqlInstaller extends BasicInstaller
 {
@@ -41,6 +42,6 @@ class PdoMysqlInstaller extends BasicInstaller
         }
 
         Jf::$Db = new \PDO("mysql:host={$host};dbname={$dbname}", $user, $pass);
-        Jf::$Rbac->reset(true);
+        Rbac::getInstance()->reset(true);
     }
 }

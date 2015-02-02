@@ -3,6 +3,7 @@
 namespace PhpRbac\Database\Installer;
 
 use PhpRbac\Database\Jf;
+use PhpRbac\Rbac;
 
 class MysqliInstaller extends BasicInstaller
 {
@@ -44,6 +45,6 @@ class MysqliInstaller extends BasicInstaller
             }
         }
         Jf::$Db = new \mysqli($host, $user, $pass, $dbname);
-        Jf::$Rbac->reset(true);
+        Rbac::getInstance()->reset(true);
     }
 }

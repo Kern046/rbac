@@ -23,30 +23,49 @@ use PhpRbac\Exception\RbacUserNotProvidedException;
  */
 class RbacManager extends JModel
 {
+    /** @var PermissionManager **/
+    private $permissionManager;
+    /** @var RoleManager **/
+    private $roleManager;
+    /** @var UserManager **/
+    private $userManager;
+    
     function __construct()
     {
-        $this->Users = new UserManager ();
-        $this->Roles = new RoleManager ();
-        $this->Permissions = new PermissionManager ();
+        $this->userManager = new UserManager ();
+        $this->roleManager = new RoleManager ();
+        $this->permissionManager = new PermissionManager ();
     }
-
+    
     /**
-     *
-     * @var \Jf\PermissionManager
+     * Get the PermissionManager
+     * 
+     * @return PermissionManager
      */
-    public $Permissions;
-
+    public function getPermissionManager()
+    {
+        return $this->permissionManager;
+    }
+    
     /**
-     *
-     * @var \Jf\RoleManager
+     * Get the RoleManager
+     * 
+     * @return RoleManager
      */
-    public $Roles;
-
+    public function getRoleManager()
+    {
+        return $this->roleManager;
+    }
+    
     /**
-     *
-     * @var \Jf\RbacUserManager
+     * Get the UserManager
+     * 
+     * @return UserManager
      */
-    public $Users;
+    public function getUserManager()
+    {
+        return $this->userManager;
+    }
 
     /**
      * Assign a role to a permission.
@@ -88,41 +107,27 @@ class RbacManager extends JModel
     function check($Permission, $UserID = null)
     {
         if ($UserID === null)
-            throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
+        {
+            throw new RbacUserNotProvidedException('$UserID is a required argument.');
+        }
+            
 
-        // convert permission to ID
-        if (is_numeric ( $Permission ))
-        {
-            $PermissionID = $Permission;
-        }
-        else
-        {
-            if (substr ( $Permission, 0, 1 ) == "/")
-                $PermissionID = $this->Permissions->pathId ( $Permission );
-            else
-                $PermissionID = $this->Permissions->titleId ( $Permission );
-        }
+        $PermissionID = $this->permissionManager->getId($Permission);
 
         // if invalid, throw exception
         if ($PermissionID === null)
-            throw new RbacPermissionNotFoundException ( "The permission '{$Permission}' not found." );
-
-        if ($this->isSQLite())
         {
-            $LastPart="AS Temp ON ( TR.ID = Temp.RoleID)
- 							WHERE
- 							TUrel.UserID=?
- 							AND
- 							Temp.ID=?";
+            throw new RbacPermissionNotFoundException("The permission '{$Permission}' not found.");
         }
-        else //mysql
-        {
-            $LastPart="ON ( TR.ID = TRel.RoleID)
- 							WHERE
- 							TUrel.UserID=?
- 							AND
- 							TPdirect.ID=?";
-        }
+            
+        $LastPart =
+            ($this->isSQLite())
+            ? "AS Temp ON ( TR.ID = Temp.RoleID)
+            WHERE TUrel.UserID=? AND Temp.ID=?"
+            : "ON ( TR.ID = TRel.RoleID)
+            WHERE TUrel.UserID=? AND TPdirect.ID=?"
+        ;
+        
         $tablePrefix = Jf::getConfig('table_prefix');
         $Res=Jf::sql ( "SELECT COUNT(*) AS Result
             FROM
@@ -137,7 +142,7 @@ class RbacManager extends JModel
             ) $LastPart",
             $UserID, $PermissionID );
 
-        return $Res [0] ['Result'] >= 1;
+        return $Res[0]['Result'] >= 1;
     }
 
     /**
@@ -172,17 +177,17 @@ class RbacManager extends JModel
     */
     function reset($Ensure = false)
     {
-        if ($Ensure !== true) {
+        if ($Ensure !== true)
+        {
             throw new \Exception ("You must pass true to this function, otherwise it won't work.");
             return;
         }
-
         $res = true;
-        $res = $res and $this->Roles->resetAssignments ( true );
-        $res = $res and $this->Roles->reset ( true );
-		$res = $res and $this->Permissions->reset ( true );
-		$res = $res and $this->Users->resetAssignments ( true );
+        $res = $res and $this->roleManager->resetAssignments(true);
+        $res = $res and $this->roleManager->reset(true);
+        $res = $res and $this->permissionManager->reset(true);
+        $res = $res and $this->userManager->resetAssignments(true);
 
-		return $res;
-	}
+        return $res;
+    }
 }

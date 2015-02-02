@@ -6,11 +6,13 @@ use PhpRbac\Database\Installer\PdoSqliteInstaller;
 
 use PhpRbac\Database\Jf;
 use PhpRbac\Tests\RbacTestCase;
+use PhpRbac\Rbac;
 
 class PdoSqliteInstallerTest extends RbacTestCase
 {
     public function setUp()
     {
+        new Rbac();
         $config = static::getSQLConfig('pdo_sqlite');
 
         Jf::loadConfig($config);

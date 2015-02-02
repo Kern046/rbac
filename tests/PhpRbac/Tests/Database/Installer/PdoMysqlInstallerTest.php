@@ -6,13 +6,13 @@ use PhpRbac\Database\Installer\PdoMysqlInstaller;
 
 use PhpRbac\Database\Jf;
 use PhpRbac\Tests\RbacTestCase;
+use PhpRbac\Rbac;
 
 class PdoMysqlInstallerTest extends RbacTestCase
 {
     public function setUp()
     {
-        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
-        Jf::loadConnection();
+        new Rbac();
         Jf::$Db->query('DROP DATABASE kilix_rbac_test');
     }
     

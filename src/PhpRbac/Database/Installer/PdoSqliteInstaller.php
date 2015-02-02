@@ -3,6 +3,7 @@
 namespace PhpRbac\Database\Installer;
 
 use PhpRbac\Database\Jf;
+use PhpRbac\Rbac;
 
 class PdoSqliteInstaller extends BasicInstaller
 {
@@ -35,6 +36,6 @@ class PdoSqliteInstaller extends BasicInstaller
             }
         }
 
-        Jf::$Rbac->reset(true);
+        Rbac::getInstance()->reset(true);
     }
 }
