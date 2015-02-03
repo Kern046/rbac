@@ -12,7 +12,11 @@ class MysqliInstallerTest extends RbacTestCase
 {
     public function setUp()
     {
-        new Rbac();
+        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
+        Jf::loadConnection();
+        
+        Rbac::getInstance();
+        
         Jf::$Db->query('DROP DATABASE kilix_rbac_test');
     }
     

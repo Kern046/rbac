@@ -50,10 +50,11 @@ class RoleManager extends BaseRbacManager
         return
             (is_numeric($item))
             ? $item
-            : 
+            : (
                 (substr($item, 0, 1) == '/')
                 ? Rbac::getInstance()->getManager()->getRoleManager()->pathId($item)
                 : Rbac::getInstance()->getManager()->getRoleManager()->titleId($item)
+            )
         ;
     }
 

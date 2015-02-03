@@ -14,10 +14,10 @@ class UserManagerTest extends RbacTestCase
     
     public function setUp()
     {
-        $rbac = new Rbac();
-        
         Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
         Jf::loadConnection();
+        
+        $rbac = Rbac::getInstance();
         
         $rbac->reset(true);
         

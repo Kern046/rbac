@@ -15,10 +15,10 @@ class RbacManagerTest extends RbacTestCase
     
     public function setUp()
     {
-        $rbac = new Rbac();
-
         Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
         Jf::loadConnection();
+        
+        $rbac = Rbac::getInstance();
         
         $rbac->reset(true);
         
@@ -29,7 +29,7 @@ class RbacManagerTest extends RbacTestCase
     {
         $this->manager->assign(1, 1);
         
-        $this->assertCount(1, $this->manager->Permissions->roles(1));
+        $this->assertCount(1, $this->manager->getPermissionManager()->roles(1));
     }
     
     public function testCheckWithInexactData()

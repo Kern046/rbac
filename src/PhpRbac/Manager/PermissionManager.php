@@ -48,10 +48,11 @@ class PermissionManager extends BaseRbacManager
         return
             (is_numeric($item))
             ? $item
-            : 
+            : (
                 (substr($item, 0, 1) == '/')
                 ? Rbac::getInstance()->getManager()->getPermissionManager()->pathId($item)
                 : Rbac::getInstance()->getManager()->getPermissionManager()->titleId($item)
+            ) 
         ;
     }
 

@@ -99,14 +99,15 @@ class Jf
 	{
 	    $debug_backtrace = debug_backtrace();
 
-	    if((isset($debug_backtrace[3])) && ($debug_backtrace[3]['function'] == 'pathId')) {
-    	    if (!self::$groupConcatLimitChanged) {
-    	        $success = self::$Db->query ("SET SESSION group_concat_max_len = 1000000");
+	    if((isset($debug_backtrace[3])) && ($debug_backtrace[3]['function'] == 'pathId'))
+            {
+                if (!self::$groupConcatLimitChanged) {
+                    $success = self::$Db->query ("SET SESSION group_concat_max_len = 1000000");
 
-    	        if ($success) {
-    	            self::$groupConcatLimitChanged = true;
-    	        }
-    	    }
+                    if ($success) {
+                        self::$groupConcatLimitChanged = true;
+                    }
+                }
 	    }
 
 		$args = func_get_args ();
@@ -134,7 +135,9 @@ class Jf
                         return $res;
                 }
                 elseif ($type == "DELETE" or $type == "UPDATE" or $type == "REPLACE")
-                        return $stmt->rowCount();
+                {
+                    return $stmt->rowCount();
+                }  
                 elseif ($type == "SELECT")
                 {
                         $res=$stmt->fetchAll ( \PDO::FETCH_ASSOC );

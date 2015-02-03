@@ -79,7 +79,7 @@ class RbacManager extends JModel
      */
     function assign($Role, $Permission)
     {
-        return $this->Roles->assign($Role, $Permission);
+        return $this->roleManager->assign($Role, $Permission);
     }
 
     /**

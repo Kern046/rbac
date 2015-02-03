@@ -89,11 +89,11 @@ class JfTest extends RbacTestCase
      */
     public function testSqlQueryMysqlite($config)
     {
-        $rbac = new Rbac();
-        
         $config['adapter'] = 'mysql';
         Jf::loadConfig($config);
         Jf::loadConnection();
+        
+        Rbac::getInstance();
         
         $query = Jf::sql('SELECT * FROM kilix_rbac_roles');
         
@@ -106,11 +106,11 @@ class JfTest extends RbacTestCase
      */
     public function testSqlPrepareMysqlite($config)
     {
-        $rbac = new Rbac();
-        
         $config['adapter'] = 'mysql';
         Jf::loadConfig($config);
         Jf::loadConnection();
+        
+        Rbac::getInstance();
         
         $query = Jf::sql('SELECT * FROM kilix_rbac_roles WHERE ID = ?;', 1);
         

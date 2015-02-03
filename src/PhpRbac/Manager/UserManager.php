@@ -83,12 +83,11 @@ class UserManager extends JModel
                 ->getId($Role)
             ;
 
-            $res = Jf::sql(
+            return Jf::sql(
                 'INSERT INTO ' . Jf::getConfig('table_prefix') . 'userroles
                 (UserID,RoleID,AssignmentDate)
                 VALUES (?,?,?)'
-            , $UserID, $RoleID, Jf::time () );
-            return $res >= 1;
+            , $UserID, $RoleID, Jf::time () ) >= 1;
 	}
 
 	/**
@@ -113,10 +112,10 @@ class UserManager extends JModel
                 ->getRoleManager()
                 ->getId($Role)
             ;
-
+            
 	    return Jf::sql(
                 'DELETE FROM ' . Jf::getConfig('table_prefix') . 'userroles'
-                . 'WHERE UserID=? AND RoleID=?'
+                . ' WHERE UserID=? AND RoleID=?'
             , $UserID, $RoleID) >= 1;
 	}
 
