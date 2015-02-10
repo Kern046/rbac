@@ -2,10 +2,11 @@
 namespace PhpRbac\Manager;
 
 use PhpRbac\Database\JModel;
-use PhpRbac\Database\Jf;
 
 use PhpRbac\Exception\RbacPermissionNotFoundException;
 use PhpRbac\Exception\RbacUserNotProvidedException;
+
+use PhpRbac\Rbac;
 
 /**
  * @defgroup phprbac_manager Documentation regarding Rbac Manager Functionality
@@ -106,12 +107,14 @@ class RbacManager extends JModel
      */
     function check($Permission, $UserID = null)
     {
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
+        $tablePrefix = $databaseManager->getTablePrefix();
+        
         if ($UserID === null)
         {
             throw new RbacUserNotProvidedException('$UserID is a required argument.');
         }
             
-
         $PermissionID = $this->permissionManager->getId($Permission);
 
         // if invalid, throw exception
@@ -128,19 +131,16 @@ class RbacManager extends JModel
             WHERE TUrel.UserID=? AND TPdirect.ID=?"
         ;
         
-        $tablePrefix = Jf::getConfig('table_prefix');
-        $Res=Jf::sql ( "SELECT COUNT(*) AS Result
-            FROM
-            {$tablePrefix}userroles AS TUrel
-
+        $Res = $databaseManager->request(
+            "SELECT COUNT(*) AS Result FROM {$tablePrefix}userroles AS TUrel
             JOIN {$tablePrefix}roles AS TRdirect ON (TRdirect.ID=TUrel.RoleID)
             JOIN {$tablePrefix}roles AS TR ON ( TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
             JOIN
             (	{$tablePrefix}permissions AS TPdirect
             JOIN {$tablePrefix}permissions AS TP ON ( TPdirect.Lft BETWEEN TP.Lft AND TP.Rght)
             JOIN {$tablePrefix}rolepermissions AS TRel ON (TP.ID=TRel.PermissionID)
-            ) $LastPart",
-            $UserID, $PermissionID );
+            ) $LastPart"
+        , $UserID, $PermissionID);
 
         return $Res[0]['Result'] >= 1;
     }
@@ -157,12 +157,15 @@ class RbacManager extends JModel
     */
     function enforce($Permission, $UserID = null)
     {
-	if ($UserID === null)
-            throw new RbacUserNotProvidedException ("\$UserID is a required argument.");
-
-        if (! $this->check($Permission, $UserID)) {
+	if($UserID === null)
+        {
+            throw new RbacUserNotProvidedException('$UserID is a required argument.');
+        }
+            
+        if(!$this->check($Permission, $UserID))
+        {
             header('HTTP/1.1 403 Forbidden');
-            die("<strong>Forbidden</strong>: You do not have permission to access this resource.");
+            die('<strong>Forbidden</strong>: You do not have permission to access this resource.');
         }
         return true;
     }
@@ -187,7 +190,6 @@ class RbacManager extends JModel
         $res = $res and $this->roleManager->reset(true);
         $res = $res and $this->permissionManager->reset(true);
         $res = $res and $this->userManager->resetAssignments(true);
-
         return $res;
     }
 }

@@ -4,25 +4,45 @@ namespace PhpRbac;
 
 use PhpRbac\Database\Jf;
 use PhpRbac\Manager\RbacManager;
+use PhpRbac\Database\DatabaseManager;
 
 class Rbac
 {
     /** @var RbacManager **/
     private $rbacManager;
+    /** @var DatabaseManager **/
+    private $databaseManager;
     /** @var Rbac **/
     private static $instance;
     
-    private function __construct()
+    private function __construct(){}
+    
+    /**
+     * Set the dependencies on DatabaseManager and RbacManager
+     * 
+     * @param \PDO|\mysqli $DBConnection
+     * @param string $tablePrefix
+     */
+    public function init($DBConnection, $tablePrefix = null)
     {
+        $this->databaseManager = new DatabaseManager($DBConnection, $tablePrefix);
         $this->rbacManager = new RbacManager();
     }
     
     /**
      * @return RbacManager
      */
-    public function getManager()
+    public function getRbacManager()
     {
         return $this->rbacManager;
+    }
+    
+    /**
+     * @return DatabaseManager
+     */
+    public function getDatabaseManager()
+    {
+        return $this->databaseManager;
     }
 
     /**

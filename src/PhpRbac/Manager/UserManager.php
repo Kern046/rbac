@@ -3,7 +3,6 @@
 namespace PhpRbac\Manager;
 
 use PhpRbac\Database\JModel;
-use PhpRbac\Database\Jf;
 
 use PhpRbac\Rbac;
 
@@ -36,28 +35,27 @@ class UserManager extends JModel
 	 */
 	function hasRole($Role, $UserID = null)
 	{
+            $databaseManager = Rbac::getInstance()->getDatabaseManager();
+            $tablePrefix = $databaseManager->getTablePrefix();
+            
 	    if ($UserID === null)
             {
                 throw new RbacUserNotProvidedException('$UserID is a required argument.');
             }
             $RoleID = Rbac::getInstance()
-                ->getManager()
+                ->getRbacManager()
                 ->getRoleManager()
                 ->getId($Role)
             ;
 
-            $tablePrefix = Jf::getConfig('table_prefix');
-
-            $R = Jf::sql (
-                "SELECT * FROM {$tablePrefix}userroles AS TUR
-                JOIN {$tablePrefix}roles AS TRdirect ON (TRdirect.ID=TUR.RoleID)
-                JOIN {$tablePrefix}roles AS TR ON (TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
-
-                WHERE
-                TUR.UserID=? AND TR.ID=?"
-            , $UserID, $RoleID );
-                    
-            return $R !== null;
+            return(
+                $databaseManager->request(
+                    "SELECT * FROM {$tablePrefix}userroles AS TUR
+                    JOIN {$tablePrefix}roles AS TRdirect ON (TRdirect.ID=TUR.RoleID)
+                    JOIN {$tablePrefix}roles AS TR ON (TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
+                    WHERE TUR.UserID=? AND TR.ID=?"
+                , $UserID, $RoleID)
+            !== null);
 	}
 
 	/**
@@ -73,6 +71,8 @@ class UserManager extends JModel
 	 */
 	function assign($Role, $UserID = null)
 	{
+            $databaseManager = Rbac::getInstance()->getDatabaseManager();
+            
 	    if ($UserID === null)
             {
                 throw new RbacUserNotProvidedException('$UserID is a required argument.');
@@ -83,11 +83,10 @@ class UserManager extends JModel
                 ->getId($Role)
             ;
 
-            return Jf::sql(
-                'INSERT INTO ' . Jf::getConfig('table_prefix') . 'userroles
-                (UserID,RoleID,AssignmentDate)
-                VALUES (?,?,?)'
-            , $UserID, $RoleID, Jf::time () ) >= 1;
+            return $databaseManager->request(
+                'INSERT INTO ' . $databaseManager->getTablePrefix() . 'userroles
+                (UserID,RoleID,AssignmentDate) VALUES (?,?,?)'
+            , $UserID, $RoleID, time()) >= 1;
 	}
 
 	/**
@@ -103,6 +102,8 @@ class UserManager extends JModel
 	 */
 	function unassign($Role, $UserID = null)
 	{
+            $databaseManager = Rbac::getInstance()->getDatabaseManager();
+            
 	    if ($UserID === null)
             {
                 throw new RbacUserNotProvidedException('$UserID is a required argument.');
@@ -113,8 +114,8 @@ class UserManager extends JModel
                 ->getId($Role)
             ;
             
-	    return Jf::sql(
-                'DELETE FROM ' . Jf::getConfig('table_prefix') . 'userroles'
+	    return $databaseManager->request(
+                'DELETE FROM ' . $databaseManager->getTablePrefix() . 'userroles'
                 . ' WHERE UserID=? AND RoleID=?'
             , $UserID, $RoleID) >= 1;
 	}
@@ -131,13 +132,15 @@ class UserManager extends JModel
 	 */
 	function allRoles($UserID = null)
 	{
+            $databaseManager = Rbac::getInstance()->getDatabaseManager();
+            $tablePrefix = $databaseManager->getTablePrefix();
+            
             if ($UserID === null)
             {
                 throw new RbacUserNotProvidedException('$UserID is a required argument.');
             }
-            $tablePrefix = Jf::getConfig('table_prefix');
 
-            return Jf::sql(
+            return $databaseManager->request(
                 "SELECT TR.* FROM {$tablePrefix}userroles AS `TRel`
                 JOIN {$tablePrefix}roles AS `TR` ON
                 (`TRel`.RoleID=`TR`.ID) WHERE TRel.UserID=?"
@@ -154,12 +157,14 @@ class UserManager extends JModel
 	 */
 	function roleCount($UserID = null)
 	{
+            $databaseManager = Rbac::getInstance()->getDatabaseManager();
+            
             if($UserID === null)
             {
                 throw new RbacUserNotProvidedException('$UserID is a required argument.');
             }
-            $Res = Jf::sql(
-                'SELECT COUNT(*) AS Result FROM ' . Jf::getConfig('table_prefix')
+            $Res = $databaseManager->request(
+                'SELECT COUNT(*) AS Result FROM ' . $databaseManager->getTablePrefix()
                 . 'userroles WHERE UserID=?'
             , $UserID);
             return (int) $Res[0]['Result'];
@@ -175,28 +180,31 @@ class UserManager extends JModel
 	 */
 	function resetAssignments($Ensure = false)
 	{
+            $databaseManager = Rbac::getInstance()->getDatabaseManager();
+            $tablePrefix = $databaseManager->getTablePrefix();
+            
             if($Ensure !== true)
             {
                 throw new \Exception ("You must pass true to this function, otherwise it won't work.");
                 return;
             }
-            $tablePrefix = Jf::getConfig('table_prefix');
-            $res = Jf::sql("DELETE FROM {$tablePrefix}userroles");
+            
+            $res = $databaseManager->request("DELETE FROM {$tablePrefix}userroles");
 
-            $Adapter = get_class(Jf::$Db);
+            $Adapter = get_class($databaseManager->getConnection());
             if($this->isMySql())
             {
-                Jf::sql("ALTER TABLE {$tablePrefix}userroles AUTO_INCREMENT =1 ");
+                $databaseManager->request("ALTER TABLE {$tablePrefix}userroles AUTO_INCREMENT = 1");
             }    
             elseif ($this->isSQLite())
             {
-                Jf::sql("delete from sqlite_sequence where name=? ", "{$tablePrefix}_userroles");
+                $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}_userroles");
             } 
             else
             {
                 throw new \Exception("Rbac can not reset table on this type of database: {$Adapter}");
             }
-            $this->assign("root", 1 /* root user */ );
+            $this->assign('root', 1);
             return $res;
 	}
 }

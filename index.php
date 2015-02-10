@@ -2,12 +2,16 @@
 
 require_once('vendor/autoload.php');
 
-use PhpRbac\Database\Jf;
 use PhpRbac\Rbac;
 
-Jf::loadConfig(__DIR__.'/src/PhpRbac/Database/database_config.json');
-Jf::loadConnection();
+$dsn = 'mysql:dbname=kilixrbactest;host=localhost';
+$user = 'root';
+$password = 'vagrant';
+
+$DBConnection = new \PDO($dsn, $user, $password);
+
 $rbac = Rbac::getInstance();
+$rbac->init($DBConnection);
         
 
 $rbac->reset(true);

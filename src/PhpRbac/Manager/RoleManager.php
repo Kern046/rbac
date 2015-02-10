@@ -3,8 +3,6 @@ namespace PhpRbac\Manager;
 
 use PhpRbac\NestedSet\FullNestedSet;
 
-use PhpRbac\Database\Jf;
-
 use PhpRbac\Rbac;
 
 /**
@@ -30,13 +28,13 @@ class RoleManager extends BaseRbacManager
 
     protected function type()
     {
-            return "roles";
+        return 'roles';
     }
 
     function __construct()
     {
-        $this->type = "roles";
-        $this->roles = new FullNestedSet(Jf::getConfig('table_prefix') . "roles", "ID", "Lft", "Rght" );
+        $this->type = 'roles';
+        $this->roles = new FullNestedSet(Rbac::getInstance()->getDatabaseManager()->getTablePrefix() . 'roles', 'ID', 'Lft', 'Rght');
     }
     
     /**
@@ -51,9 +49,9 @@ class RoleManager extends BaseRbacManager
             (is_numeric($item))
             ? $item
             : (
-                (substr($item, 0, 1) == '/')
-                ? Rbac::getInstance()->getManager()->getRoleManager()->pathId($item)
-                : Rbac::getInstance()->getManager()->getRoleManager()->titleId($item)
+                (substr($item, 0, 1) === '/')
+                ? Rbac::getInstance()->getRbacManager()->getRoleManager()->pathId($item)
+                : Rbac::getInstance()->getRbacManager()->getRoleManager()->titleId($item)
             )
         ;
     }
@@ -87,8 +85,10 @@ class RoleManager extends BaseRbacManager
      */
     function unassignPermissions($ID)
     {
-        return Jf::sql(
-            'DELETE FROM ' . Jf::getConfig('table_prefix') . 'rolepermissions
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
+        
+        return $databaseManager->request(
+            'DELETE FROM ' . $databaseManager->getTablePrefix() . 'rolepermissions
             WHERE RoleID=?'
         , $ID);
     }
@@ -102,8 +102,10 @@ class RoleManager extends BaseRbacManager
      */
     function unassignUsers($ID)
     {
-        return Jf::sql(
-            'DELETE FROM ' . Jf::getConfig('table_prefix')
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
+        
+        return $databaseManager->request(
+            'DELETE FROM ' . $databaseManager->getTablePrefix()
             . 'userroles WHERE RoleID=?'
         , $ID);
     }
@@ -121,8 +123,10 @@ class RoleManager extends BaseRbacManager
      */
     function hasPermission($Role, $Permission)
     {
-        $tablePrefix = Jf::getConfig('table_prefix');
-        $Res = Jf::sql (
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
+        $tablePrefix = $databaseManager->getTablePrefix();
+        
+        $Res = $databaseManager->request(
             "SELECT COUNT(*) AS Result
             FROM {$tablePrefix}rolepermissions AS TRel
             JOIN {$tablePrefix}permissions AS TP ON ( TP.ID= TRel.PermissionID)
@@ -160,28 +164,32 @@ class RoleManager extends BaseRbacManager
      */
     function permissions($Role, $OnlyIDs = true)
     {
-        if (! is_numeric ($Role))
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
+        $tablePrefix = $databaseManager->getTablePrefix();
+        
+        if (!is_numeric($Role))
         {
             $Role = $this->returnId($Role);
         }
 
-        $tablePrefix = Jf::getConfig('table_prefix');
         if ($OnlyIDs)
         {
-            $Res = Jf::sql ( "SELECT PermissionID AS `ID` FROM {$tablePrefix}rolepermissions WHERE RoleID=? ORDER BY PermissionID", $Role );
-            if (is_array ( $Res ))
+            $Res = $databaseManager->request("SELECT PermissionID AS `ID` FROM {$tablePrefix}rolepermissions WHERE RoleID=? ORDER BY PermissionID", $Role);
+            if (is_array($Res))
             {
-                    $out = array ();
-                    foreach ( $Res as $R )
-                            $out [] = $R ['ID'];
-                    return $out;
+                $out = [];
+                foreach ($Res as $R)
+                {
+                    $out [] = $R ['ID'];
+                }
+                return $out;
             }
-            else
-                    return null;
-        } else {
-        return Jf::sql ( "SELECT `TP`.ID, `TP`.Title, `TP`.Description FROM {$tablePrefix}permissions AS `TP`
-                LEFT JOIN {$tablePrefix}rolepermissions AS `TR` ON (`TR`.PermissionID=`TP`.ID)
-                WHERE RoleID=? ORDER BY TP.ID", $Role );
+            return null;
         }
+        return $databaseManager->request(
+            "SELECT `TP`.ID, `TP`.Title, `TP`.Description FROM {$tablePrefix}permissions AS `TP`
+            LEFT JOIN {$tablePrefix}rolepermissions AS `TR` ON (`TR`.PermissionID=`TP`.ID)
+            WHERE RoleID=? ORDER BY TP.ID", $Role
+        );
     }
 }
