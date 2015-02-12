@@ -3,13 +3,11 @@
 namespace PhpRbac\Tests;
 
 use PhpRbac\Rbac;
-use PhpRbac\Manager\RbacManager;
-use PhpRbac\Database\Jf;
 
 class RbacTest extends RbacTestCase
 {
-    /** @var RbacManager **/
-    private $rbacManager;
+    /** @var Rbac **/
+    private $rbac;
     
     public function setUp()
     {
@@ -19,35 +17,28 @@ class RbacTest extends RbacTestCase
 
         $DBConnection = new \PDO($dsn, $config['user'], $config['pass']);
         
-        $rbac = Rbac::getInstance();
-        $rbac->init($DBConnection, 'kilix_rbac_');
-        
-        $this->rbacManager = $rbac->getRbacManager();
-        $this->rbacManager->reset(true);
+        $this->rbac = Rbac::getInstance();
+        $this->rbac->init($DBConnection, 'kilix_rbac_');
+        $this->rbac->reset(true);
     }
     
     public function testAssign()
     {
-        $this->rbacManager->getRoleManager()->addPath('/role_01/role_02');
-        $this->rbacManager->getPermissionManager()->addPath('/permission_01/permission_02');
+        $this->rbac->getRbacManager()->getRoleManager()->addPath('/role_01/role_02');
+        $this->rbac->getRbacManager()->getPermissionManager()->addPath('/permission_01/permission_02');
         
-        $this->assertTrue($this->rbacManager->assign('role_01', 'permission_02'));
+        $this->assertTrue($this->rbac->assign('role_01', 'permission_02'));
     }
     
     public function testCheck()
     {
-        $this->assertTrue($this->rbacManager->check(1, 1));
+        $this->assertTrue($this->rbac->check(1, 1));
     }
     
     public function testEnforce()
     {
-        $this->rbacManager->getPermissionManager()->add('read-article', 'Lire un article');
+        $this->rbac->getRbacManager()->getPermissionManager()->add('read-article', 'Lire un article');
         
-        $this->assertTrue($this->rbacManager->enforce('read-article', 1));
-    }
-    
-    public function testTablePrefix()
-    {
-        $this->assertInternalType('string', Rbac::getInstance()->getDatabaseManager()->getTablePrefix());
+        $this->assertTrue($this->rbac->enforce('read-article', 1));
     }
 }
