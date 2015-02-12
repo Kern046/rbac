@@ -2,17 +2,7 @@
 namespace PhpRbac\NestedSet;
 
 interface ExtendedNestedSetInterface extends NestedSetInterface
-{
-    /**
-     * Lock the tables
-     */
-    public function lock();
-    
-    /**
-     * Unlock the tables
-     */
-    public function unlock();
-    
+{   
     /**
      * Returns the ID of a node based on a SQL conditional string
      * It accepts other params in the PreparedStatements format

@@ -2,14 +2,37 @@
 
 namespace PhpRbac\Database;
 
+use PhpRbac\Rbac;
+
 class JModel
 {
     protected function isSQLite()
     {
-	return Jf::$Db instanceof \PDO && Jf::$Db->getAttribute(\PDO::ATTR_DRIVER_NAME)=="sqlite";
+        $databaseConnection =
+            Rbac::getInstance()
+            ->getDatabaseManager()
+            ->getConnection()
+        ;
+        
+	return
+            $databaseConnection instanceof \PDO &&
+            $databaseConnection->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite'
+        ;
     }
     protected function isMySql()
     {
-        return Jf::$Db instanceof \mysqli || (Jf::$Db instanceof \PDO && Jf::$Db->getAttribute(\PDO::ATTR_DRIVER_NAME)=="mysql");
+        $databaseConnection =
+            Rbac::getInstance()
+            ->getDatabaseManager()
+            ->getConnection()
+        ;
+        
+        return
+            $databaseConnection instanceof \mysqli ||
+            (
+                $databaseConnection instanceof \PDO &&
+                $databaseConnection->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql'
+            )
+        ;
     }
 }

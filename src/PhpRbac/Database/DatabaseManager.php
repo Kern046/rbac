@@ -59,17 +59,17 @@ class DatabaseManager
      * @throws Exception
      * @return array|integer|null
      */
-    public function request()
+    public function request($Query)
     {
         $args = func_get_args ();
         
         if ($this->connection instanceof \PDO)
         {
-            return $this->pdoRequest($args);
+            return $this->pdoRequest($Query, $args);
         }
         elseif($this->connection instanceof \mysqli)
         {
-            return $this->mysqliRequest($args);
+            return $this->mysqliRequest($Query, $args);
         }
         throw new \Exception('Unknown database interface type.');
     }
@@ -78,13 +78,12 @@ class DatabaseManager
      * Execute a SQL query with a PDO connection
      * 
      * @param string $Query
+     * @param array $args
      * @return boolean
      */
-    public function pdoRequest($Query)
+    public function pdoRequest($Query, $args)
     {
         $this->checkGroupConcatLimit();
-
-        $args = func_get_args ();
 
         if(!$stmt = $this->connection->prepare($Query))
         {
@@ -135,15 +134,16 @@ class DatabaseManager
      * Execute a SQL query with a mysqli connection
      * 
      * @param string $Query
+     * @param array $args
      * @return boolean
      */
-    public function mysqliRequest($Query)
+    public function mysqliRequest($Query, $args)
     {
         $this->checkGroupConcatLimit();
-        $args = func_get_args ();
+        
         if(count($args) === 1)
         {
-            $result = self::$Db->query ( $Query );
+            $result = $this->connection->query ( $Query );
             if ($result === true)
             {
                 return true;
@@ -160,9 +160,9 @@ class DatabaseManager
             return null;
         }
         
-        if ($preparedStatement = self::$Db->prepare($Query))
+        if(($preparedStatement = $this->connection->prepare($Query)) === false)
         {
-            trigger_error("Unable to prepare statement: {$Query}, reason: ".self::$Db->error);
+            trigger_error("Unable to prepare statement: {$Query}, reason: ".$this->connection->error);
         }
                 
         array_shift($args); // remove $Query from args
@@ -173,7 +173,7 @@ class DatabaseManager
             $a[$k] = &$v;
         }
                 
-        $types = str_repeat("s", count($args)); // all params are
+        $types = str_repeat('s', count($args)); // all params are
                                                 // strings, works well on
                                                 // MySQL
                                                 // and SQLite
@@ -184,16 +184,16 @@ class DatabaseManager
         $type = substr(trim(strtoupper($Query)), 0, 6);
         if ($type == 'INSERT')
         {
-            $res = self::$Db->insert_id;
+            $res = $this->connection->insert_id;
             if ($res == 0)
             {
-                return self::$Db->affected_rows;
+                return $this->connection->affected_rows;
             }
             return $res;
         }
         elseif ($type == 'DELETE' or $type == 'UPDATE' or $type == 'REPLACE')
         {
-            return self::$Db->affected_rows;
+            return $this->connection->affected_rows;
         }
         elseif ($type == 'SELECT')
         {
@@ -215,9 +215,9 @@ class DatabaseManager
             $count = 0;
             while($preparedStatement->fetch ())
             {
-                foreach ( $out as $k => $v )
+                foreach($out as $k => $v)
                 {
-                    $output [$count] [$k] = $v;
+                    $output[$count][$k] = $v;
                 }    
                 ++$count;
             }

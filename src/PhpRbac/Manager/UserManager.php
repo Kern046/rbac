@@ -78,7 +78,7 @@ class UserManager extends JModel
                 throw new RbacUserNotProvidedException('$UserID is a required argument.');
             }  
             $RoleID = Rbac::getInstance()
-                ->getManager()
+                ->getRbacManager()
                 ->getRoleManager()
                 ->getId($Role)
             ;
@@ -109,7 +109,7 @@ class UserManager extends JModel
                 throw new RbacUserNotProvidedException('$UserID is a required argument.');
             }
             $RoleID = Rbac::getInstance()
-                ->getManager()
+                ->getRbacManager()
                 ->getRoleManager()
                 ->getId($Role)
             ;
