@@ -105,16 +105,6 @@ class Rbac
     {
         return $this->rbacManager->reset($ensure);
     }
-
-    /**
-     * Get the RBAC tables 
-     * 
-     * @return string
-     */
-    public function tablePrefix()
-    {
-        return Jf::getConfig('table_prefix');
-    }
     
     /**
      * @return Rbac
