@@ -12,7 +12,6 @@ $DBConnection = new \PDO($dsn, $user, $password);
 
 $rbac = Rbac::getInstance();
 $rbac->init($DBConnection);
-        
 
 $rbac->reset(true);
 $commonPerms = [
@@ -74,25 +73,25 @@ $role3Perms = [
 ];
 
 
-$commonRoleId = $rbac->getManager()->getRoleManager()->add('common_role', 'Common permissions for all users');
+$commonRoleId = $rbac->getRbacManager()->getRoleManager()->add('common_role', 'Common permissions for all users');
 
 foreach ($commonPerms as $info) {
-    $permId = $rbac->getManager()->getPermissionManager()->add($info, 'Default description', $commonRoleId);
-    $rbac->getManager()->getRoleManager()->assign('common_role', $permId);
+    $permId = $rbac->getRbacManager()->getPermissionManager()->add($info, 'Default description', $commonRoleId);
+    $rbac->getRbacManager()->getRoleManager()->assign('common_role', $permId);
 }
 
-$role1Id = $rbac->getManager()->getRoleManager()->add('role1', 'Role 1', $commonRoleId);
+$role1Id = $rbac->getRbacManager()->getRoleManager()->add('role1', 'Role 1', $commonRoleId);
 
 foreach ($role1Perms as $permName) {
-    $rbac->getManager()->getPermissionManager()->add($permName, 'Default description', $role1Id);
-    $rbac->getManager()->getRoleManager()->assign('role1', $permName);
+    $rbac->getRbacManager()->getPermissionManager()->add($permName, 'Default description', $role1Id);
+    $rbac->getRbacManager()->getRoleManager()->assign('role1', $permName);
 }
 
-$role2Id = $rbac->getManager()->getRoleManager()->add('role2', 'Role 2', $commonRoleId);
+$role2Id = $rbac->getRbacManager()->getRoleManager()->add('role2', 'Role 2', $commonRoleId);
 
 foreach ($role2Perms as $permName) {
-    $rbac->getManager()->getPermissionManager()->add($permName, 'Default description', $role2Id);
-    $rbac->getManager()->getRoleManager()->assign('role2', $permName);
+    $rbac->getRbacManager()->getPermissionManager()->add($permName, 'Default description', $role2Id);
+    $rbac->getRbacManager()->getRoleManager()->assign('role2', $permName);
 }
 
 
@@ -119,7 +118,7 @@ $users = [
 foreach ($users as $user) {
     if (!empty($user['roles']) && is_array($user['roles'])) {
         foreach ($user['roles'] as $role) {
-            $rbac->getManager()->getUserManager()->assign($role, $user['id']);
+            $rbac->getRbacManager()->getUserManager()->assign($role, $user['id']);
         }
     }
 }
