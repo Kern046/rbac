@@ -2,9 +2,6 @@
 
 namespace PhpRbac\Tests;
 
-use PhpRbac\Rbac;
-use PhpRbac\Database\Jf;
-
 abstract class RbacTestCase extends \PHPUnit_Framework_TestCase
 {
     protected static function getSQLConfig($adapter = 'pdo_mysql')
@@ -30,9 +27,7 @@ abstract class RbacTestCase extends \PHPUnit_Framework_TestCase
                     "dbname"        => $GLOBALS['MYSQL_DB_DBNAME'],
                 ];
         }
-
         $config['table_prefix'] = $GLOBALS['DB_TABLE_PREFIX'];
-
         return $config;
     }
 }

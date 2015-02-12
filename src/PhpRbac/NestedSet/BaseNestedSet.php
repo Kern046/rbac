@@ -2,7 +2,8 @@
 
 namespace PhpRbac\NestedSet;
 
-use PhpRbac\Database\Jf;
+use PhpRbac\Rbac;
+
 /**
  * BaseNestedSet Class
  * This class provides a means to implement Hierarchical data in flat SQL tables.
@@ -17,197 +18,219 @@ use PhpRbac\Database\Jf;
 //FIXME: many of these operations should be done in a transaction
 class BaseNestedSet implements NestedSetInterface
 {
-    function __construct($Table,$IDField="ID",$LeftField="Left",$RightField="Right")
-    {
-        $this->assign($Table,$IDField,$LeftField,$RightField);
-    }
+    /** @var string **/
     private $Table;
-    private $Left,$Right;
+    /** @var string **/
+    private $Left;
+    /** @var string **/
+    private $Right;
+    /** @var string **/
     private $ID;
+    
+    /**
+     * @param string $Table
+     * @param string $IDField
+     * @param string $LeftField
+     * @param string $RightField
+     */
+    public function __construct($Table, $IDField = 'ID', $LeftField = 'Left', $RightField = 'Right')
+    {
+        $this->Table = $Table;
+        $this->ID = $IDField;
+        $this->Left = $LeftField;
+        $this->Right = $RightField;
+    }
+    
+    /**
+     * @return string
+     */
     protected function id()
     {
     	return $this->ID;
     }
+    
+    /**
+     * @return string
+     */
     protected function table()
     {
     	return $this->Table;
     }
+    
+    /**
+     * @return string
+     */
     protected function left()
     {
     	return $this->Left;
     }
+    
+    /**
+     * @return string
+     */
     protected function right()
     {
     	return $this->Right;
     }
+    
     /**
-     * Assigns fields of the table
-     *
-     * @param String $Table
-     * @param String $ID
-     * @param String $Left
-     * @param String $Right
+     * {@inheritdoc}
      */
-    protected function assign($Table,$ID,$Left,$Right)
+    public function descendantCount($ID)
     {
-        $this->Table=$Table;
-        $this->ID=$ID;
-        $this->Left=$Left;
-        $this->Right=$Right;
+        $Res = Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT ({$this->right()}-{$this->left()}-1)/2 AS `Count` FROM
+            {$this->table()} WHERE {$this->id()}=?"
+        , $ID);
+        return sprintf('%d', $Res[0]['Count']) * 1;
     }
     
     /**
-     * Returns number of descendants 
-     *
-     * @param Integer $ID
-     * @return Integer Count
+     * {@inheritdoc}
      */
-    function descendantCount($ID)
-    {
-        $Res=Jf::sql("SELECT ({$this->right()}-{$this->left()}-1)/2 AS `Count` FROM
-        {$this->table()} WHERE {$this->id()}=?",$ID);
-        return sprintf("%d",$Res[0]["Count"])*1;
-    }
-    
-    /**
-     * Returns the depth of a node in the tree
-     * Note: this uses path
-     * @param Integer $ID
-     * @return Integer Depth from zero upwards
-     * @seealso path
-     */
-    function depth($ID)
+    public function depth($ID)
     {
         return count($this->path($ID))-1;
     }
+    
     /**
-     * Returns a sibling of the current node
-     * Note: You can't find siblings of roots 
-     * Note: this is a heavy function on nested sets, uses both children (which is quite heavy) and path
-     * @param Integer $ID
-     * @param Integer $SiblingDistance from current node (negative or positive)
-     * @return Array Node on success, null on failure 
+     * {@inheritdoc}
      */
-    function sibling($ID,$SiblingDistance=1)
+    public function sibling($ID, $SiblingDistance = 1)
     {
-        $Parent=$this->parentNode($ID);
-        $Siblings=$this->children($Parent[$this->id()]);
-        if (!$Siblings) return null;
+        $n = 0;
+        $Parent = $this->parentNode($ID);
+        
+        if(($Siblings = $this->children($Parent[$this->id()])) === null)
+        {
+            return null;
+        }
         foreach ($Siblings as &$Sibling)
         {
-            if ($Sibling[$this->id()]==$ID) break;
-            $n++;
+            if($Sibling[$this->id()]==$ID)
+            {
+                break;
+            }
+            ++$n;
         }
-        return $Siblings[$n+$SiblingDistance];
+        return $Siblings[$n + $SiblingDistance];
     }
+    
     /**
-     * Returns the parent of a node
-     * Note: this uses path
-     * @param Integer $ID
-     * @return Array parentNode (null on failure)
-     * @seealso path
+     * {@inheritdoc}
      */
-    function parentNode($ID)
+    public function parentNode($ID)
     {
-        $Path=$this->path($ID);
-        if (count($Path)<2) return null;
-        else return $Path[count($Path)-2];        
+        $Path = $this->path($ID);
+        if(count($Path) < 2)
+        {
+            return null;
+        }
+        return $Path[count($Path) - 2];        
     }
-	/**
-     * Deletes a node and shifts the children up
-     *
-     * @param Integer $ID
+    
+    /**
+     * {@inheritdoc}
      */
-    function delete($ID)
+    public function delete($ID)
     {
-        $Info=Jf::sql("SELECT {$this->left()} AS `Left`,{$this->right()} AS `Right` 
-			FROM {$this->table()}
-			WHERE {$this->id()} = ?;
-        ",$ID);
-        $Info=$Info[0];
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
+        
+        $Info = $databaseManager->request(
+            "SELECT {$this->left()} AS `Left`,{$this->right()} AS `Right` 
+            FROM {$this->table()} WHERE {$this->id()} = ?;"
+        , $ID)[0];
 
-        $count=Jf::sql("DELETE FROM {$this->table()} WHERE {$this->left()} = ?",$Info["Left"]);
+        $count = $databaseManager->request(
+            "DELETE FROM {$this->table()} WHERE {$this->left()} = ?"
+        , $Info['Left']);
 
-
-        Jf::sql("UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - 1, `".
-            $this->left."` = {$this->left()} - 1 WHERE {$this->left()} BETWEEN ? AND ?",$Info["Left"],$Info["Right"]);
-        Jf::sql("UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - 2 WHERE `".
-            $this->Right."` > ?",$Info["Right"]);
-        Jf::sql("UPDATE {$this->table()} SET {$this->left()} = {$this->left()} - 2 WHERE `".
-            $this->left."` > ?",$Info["Right"]);
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - 1, `".
+            $this->left."` = {$this->left()} - 1 WHERE {$this->left()} BETWEEN ? AND ?"
+        , $Info['Left'], $Info['Right']);
+            
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - 2 WHERE `".
+            $this->Right."` > ?"
+        , $Info['Right']);
+            
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} - 2 WHERE `".
+            $this->left."` > ?"
+        , $Info['Right']);
+        
         return $count;
     }
+    
     /**
-     * Deletes a node and all its descendants
-     *
-     * @param Integer $ID
+     * {@inheritdoc}
      */
-    function deleteSubtree($ID)
+    public function deleteSubtree($ID)
     {
-        $Info=Jf::sql("SELECT {$this->left()} AS `Left`,{$this->right()} AS `Right` ,{$this->right()}-{$this->left()}+ 1 AS Width
-			FROM {$this->table()}
-			WHERE {$this->id()} = ?;
-        ",$ID);
-        $Info=$Info[0];
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
-        $count=Jf::sql("
-            DELETE FROM {$this->table()} WHERE {$this->left()} BETWEEN ? AND ?
-        ",$Info["Left"],$Info["Right"]);
+        $Info = $databaseManager->request(
+            "SELECT {$this->left()} AS `Left`,{$this->right()} AS `Right`, {$this->right()}-{$this->left()} + 1 AS Width
+            FROM {$this->table()} WHERE {$this->id()} = ?;"
+        , $ID)[0];
         
-        Jf::sql("
-            UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - ? WHERE {$this->right()} > ?
-        ",$Info["Width"],$Info["Right"]);
-        Jf::sql("
-            UPDATE {$this->table()} SET {$this->left()} = {$this->left()} - ? WHERE {$this->left()} > ?
-        ",$Info["Width"],$Info["Right"]);
+        $count = $databaseManager->request(
+            "DELETE FROM {$this->table()} WHERE {$this->left()} BETWEEN ? AND ?"
+        , $Info['Left'], $Info['Right']);
+        
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - ? WHERE {$this->right()} > ?"
+        , $Info['Width'], $Info['Right']);
+            
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} - ? WHERE {$this->left()} > ?"
+        ,$Info['Width'],$Info['Right']);
+            
         return $count;
-
     }
+    
     /**
-     * Returns all descendants of a node
-     *
-     * @param Integer $ID
-     * @param Boolean $AbsoluteDepths to return Depth of sub-tree from zero or absolutely from the whole tree  
-	 * @return Rowset including Depth field
-	 * @seealso children
+     * {@inheritdoc}
      */
-    function descendants($ID,$AbsoluteDepths=false)
+    public function descendants($ID, $AbsoluteDepths = false)
     {
-           if (!$AbsoluteDepths)
-               $DepthConcat="- (sub_tree.depth )";
-        $Res=Jf::sql("
-            SELECT node.*, (COUNT(parent.{$this->id()})-1 $DepthConcat ) AS Depth
+        $DepthConcat =
+            ($AbsoluteDepths === false)
+            ? ' - (sub_tree.depth)'
+            : ''
+        ;
+           
+        return Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT node.*, (COUNT(parent.{$this->id()})-1$DepthConcat) AS Depth
             FROM {$this->table()} AS node,
             	{$this->table()} AS parent,
             	{$this->table()} AS sub_parent,
             	(
-            		SELECT node.{$this->id()}, (COUNT(parent.{$this->id()}) - 1) AS depth
-            		FROM {$this->table()} AS node,
-            		{$this->table()} AS parent
-            		WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-            		AND node.{$this->id()} = ?
-            		GROUP BY node.{$this->id()}
-            		ORDER BY node.{$this->left()}
+                    SELECT node.{$this->id()}, (COUNT(parent.{$this->id()}) - 1) AS depth
+                    FROM {$this->table()} AS node,
+                    {$this->table()} AS parent
+                    WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
+                    AND node.{$this->id()} = ?
+                    GROUP BY node.{$this->id()}
+                    ORDER BY node.{$this->left()}
             	) AS sub_tree
             WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
             	AND node.{$this->left()} BETWEEN sub_parent.{$this->left()} AND sub_parent.{$this->right()}
             	AND sub_parent.{$this->id()} = sub_tree.{$this->id()}
             GROUP BY node.{$this->id()}
             HAVING Depth > 0
-            ORDER BY node.{$this->left()}",$ID);
-        return $Res;
+            ORDER BY node.{$this->left()}"
+        , $ID);
     }
+    
     /**
-     * Returns immediate children of a node
-     * Note: this function performs the same as descendants but only returns results with Depth=1
-     * @param Integer $ID
-     * @return Rowset not including Depth
-     * @seealso descendants
+     * {@inheritdoc}
      */
-    function children($ID)
+    public function children($ID)
     {
-        $Res=Jf::sql("
-            SELECT node.*, (COUNT(parent.{$this->id()})-1 - (sub_tree.depth )) AS Depth
+        $Res = Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT node.*, (COUNT(parent.{$this->id()})-1 - (sub_tree.depth )) AS Depth
             FROM {$this->table()} AS node,
             	{$this->table()} AS parent,
             	{$this->table()} AS sub_parent,
@@ -225,114 +248,127 @@ class BaseNestedSet implements NestedSetInterface
             	AND sub_parent.{$this->id()} = sub_tree.{$this->id()}
             GROUP BY node.{$this->id()}
             HAVING Depth = 1
-            ORDER BY node.{$this->left()};
-        ",$ID);
-       if ($Res)
-       foreach ($Res as &$v)
-           unset($v["Depth"]);
-        return $Res;
-    }    
-	/**
-     * Returns the path to a node, including the node
-     *
-     * @param Integer $ID
-     * @return Rowset nodes in path
-     */
-    function path($ID)
-    {
-        $Res=Jf::sql("
-            SELECT parent.* 
-            FROM {$this->table()} AS node,
-            ".$this->table." AS parent
-            WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-            AND node.{$this->id()} = ?
-            ORDER BY parent.{$this->left()}",$ID);
+            ORDER BY node.{$this->left()};"
+        , $ID);
+            
+        if($Res !== false)
+        {
+            foreach ($Res as &$v)
+            {
+                unset($v['Depth']);
+            }
+        }
         return $Res;
     }
     
     /**
-     * Finds all leaves of a parent
-     *	Note: if you don' specify $PID, There would be one less AND in the SQL Query
-     * @param Integer $PID
-     * @return Rowset Leaves
+     * {@inheritdoc}
      */
-    function leaves($PID=null)
+    public function path($ID)
     {
-        if ($PID) 
-        $Res=Jf::sql("SELECT *
-            FROM {$this->table()}
-            WHERE {$this->right()} = {$this->left()} + 1 
-        	AND {$this->left()} BETWEEN 
-            (SELECT {$this->left()} FROM {$this->table()} WHERE {$this->id()}=?)
-            	AND 
-            (SELECT {$this->right()} FROM {$this->table()} WHERE {$this->id()}=?)",$PID,$PID);
-        else
-        $Res=Jf::sql("SELECT *
-            FROM {$this->table()}
-            WHERE {$this->right()} = {$this->left()} + 1");
-        return $Res;
+        return Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT parent.* FROM {$this->table()} AS node, {$this->table} AS parent
+            WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
+            AND node.{$this->id()} = ? ORDER BY parent.{$this->left()}"
+        , $ID);
     }
+    
     /**
-     * Adds a sibling after a node
-     *
-     * @param Integer $ID
-     * @return Integer SiblingID
+     * {@inheritdoc}
      */
-    function insertSibling($ID=0)
+    public function leaves($PID = null)
     {
-//        $this->DB->AutoQuery("LOCK TABLE {$this->table()} WRITE;");
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
+        
+        return
+            ($PID === null)
+            ? $databaseManager->request("SELECT * FROM {$this->table()} "
+            . "WHERE {$this->right()} = {$this->left()} + 1")
+            : $databaseManager->request(
+                "SELECT * FROM {$this->table()} WHERE {$this->right()} = {$this->left()} + 1 
+                    AND {$this->left()} BETWEEN 
+                (SELECT {$this->left()} FROM {$this->table()} WHERE {$this->id()}=?)
+                    AND 
+                (SELECT {$this->right()} FROM {$this->table()} WHERE {$this->id()}=?)"
+            , $PID, $PID)
+        ;
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function insertSibling($ID=0)
+    {
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
         //Find the Sibling
-        $Sibl=Jf::sql("SELECT {$this->right()} AS `Right`".
-        	" FROM {$this->table()} WHERE {$this->id()} = ?",$ID);
-        $Sibl=$Sibl[0];
-        if ($Sibl==null)
+        $Sibl = $databaseManager->request(
+            "SELECT {$this->right()} AS `Right` FROM {$this->table()} WHERE {$this->id()} = ?"
+        , $ID)[0];
+            
+        if($Sibl === null)
         {
-            $Sibl["Right"]=0;
+            $Sibl['Right']=0;
         }
-        Jf::sql("UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 WHERE {$this->right()} > ?",$Sibl["Right"]);
-        Jf::sql("UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?",$Sibl["Right"]);
-        $Res= Jf::sql("INSERT INTO {$this->table()} ({$this->left()},{$this->right()}) ".
-        	"VALUES(?,?)",$Sibl["Right"]+1,$Sibl["Right"]+2);
-//        $this->DB->AutoQuery("UNLOCK TABLES");
-        return $Res;
+        
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 "
+            . "WHERE {$this->right()} > ?"
+        , $Sibl['Right']);
+            
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?"
+        , $Sibl['Right']);
+            
+        return $databaseManager->request(
+            "INSERT INTO {$this->table()} ({$this->left()},{$this->right()}) VALUES(?,?)"
+        , $Sibl['Right'] + 1, $Sibl['Right'] + 2);
     }
+    
     /**
-     * Adds a child to the beginning of a node's children
-     *
-     * @param Integer $PID
-     * @return Integer ChildID
+     * {@inheritdoc}
      */
-    function insertChild($PID=0)
+    public function insertChild($PID=0)
     {
+        $databaseManager = Rbac::getInstance()->getDatabaseManager();
         //Find the Sibling
-        $Sibl=Jf::sql("SELECT {$this->left()} AS `Left`".
-        	" FROM {$this->table()} WHERE {$this->id()} = ?",$PID);
-        $Sibl=$Sibl[0];
-        if ($Sibl==null)
+        $Sibl = $databaseManager->request(
+            "SELECT {$this->left()} AS `Left` FROM {$this->table()} WHERE {$this->id()} = ?"
+        , $PID)[0];
+        
+        if($Sibl === null)
         {
-            $Sibl["Left"]=0;
+            $Sibl['Left'] = 0;
         }
-        Jf::sql("UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 WHERE {$this->right()} > ?",$Sibl["Left"]);
-        Jf::sql("UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?",$Sibl["Left"]);
-        $Res=Jf::sql("INSERT INTO {$this->table()} ({$this->left()},{$this->right()}) ".
-        	"VALUES(?,?)",$Sibl["Left"]+1,$Sibl["Left"]+2);
-        return $Res;
+        
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 WHERE {$this->right()} > ?"
+        , $Sibl['Left']);
+            
+        $databaseManager->request(
+            "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?"
+        , $Sibl['Left']);
+            
+        return $databaseManager->request(
+            "INSERT INTO {$this->table()} ({$this->left()},{$this->right()}) VALUES(?,?)"
+        , $Sibl['Left'] + 1, $Sibl['Left'] + 2);
     }
+    
     /**
-     * Retrives the full tree including Depth field.
-     *
-     * @return 2DArray Rowset
+     * {@inheritdoc}
      */
-    function fullTree()
+    public function fullTree()
     {
-        $Res=Jf::sql("SELECT node.*, (COUNT(parent.{$this->id()}) - 1) AS Depth
+        return Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT node.*, (COUNT(parent.{$this->id()}) - 1) AS Depth
             FROM {$this->table()} AS node,
             {$this->table()} AS parent
-            WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
+            WHERE node.{$this->left()} BETWEEN parent.{$this->left()}
+            AND parent.{$this->right()}
             GROUP BY node.{$this->id()}
-            ORDER BY node.{$this->left()}");
-        return $Res;
+            ORDER BY node.{$this->left()}"
+        );
     }
+    
     /**
      * This function converts a 2D array with Depth fields into a multidimensional tree in an associative array
      *

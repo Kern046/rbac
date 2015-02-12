@@ -4,7 +4,6 @@ namespace PhpRbac\Tests\Manager;
 
 use PhpRbac\Manager\PermissionManager;
 use PhpRbac\Rbac;
-use PhpRbac\Database\Jf;
 use PhpRbac\Tests\RbacTestCase;
 
 class PermissionManagerTest extends RbacTestCase
@@ -14,10 +13,14 @@ class PermissionManagerTest extends RbacTestCase
     
     public function setUp()
     {
-        $rbac = new Rbac();
+        $config = self::getSQLConfig('pdo_mysql');
+        
+        $dsn = "mysql:dbname={$config['dbname']};host={$config['host']}";
 
-        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
-        Jf::loadConnection();
+        $DBConnection = new \PDO($dsn, $config['user'], $config['pass']);
+        
+        $rbac = Rbac::getInstance();
+        $rbac->init($DBConnection, 'kilix_rbac_');
         
         $rbac->reset(true);
         
