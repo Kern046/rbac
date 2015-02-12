@@ -4,7 +4,6 @@ namespace PhpRbac\Tests\Manager;
 
 use PhpRbac\Manager\UserManager;
 use PhpRbac\Rbac;
-use PhpRbac\Database\Jf;
 use PhpRbac\Tests\RbacTestCase;
 
 class UserManagerTest extends RbacTestCase
@@ -14,11 +13,14 @@ class UserManagerTest extends RbacTestCase
     
     public function setUp()
     {
-        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
-        Jf::loadConnection();
+        $config = self::getSQLConfig('pdo_mysql');
+        
+        $dsn = "mysql:dbname={$config['dbname']};host={$config['host']}";
+
+        $DBConnection = new \PDO($dsn, $config['user'], $config['pass']);
         
         $rbac = Rbac::getInstance();
-        
+        $rbac->init($DBConnection, 'kilix_rbac_');
         $rbac->reset(true);
         
         $this->manager = new UserManager();

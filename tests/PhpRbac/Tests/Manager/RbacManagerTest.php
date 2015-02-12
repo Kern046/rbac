@@ -15,11 +15,14 @@ class RbacManagerTest extends RbacTestCase
     
     public function setUp()
     {
-        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
-        Jf::loadConnection();
+        $config = self::getSQLConfig('pdo_mysql');
+        
+        $dsn = "mysql:dbname={$config['dbname']};host={$config['host']}";
+
+        $DBConnection = new \PDO($dsn, $config['user'], $config['pass']);
         
         $rbac = Rbac::getInstance();
-        
+        $rbac->init($DBConnection, 'kilix_rbac_');
         $rbac->reset(true);
         
         $this->manager = new RbacManager();

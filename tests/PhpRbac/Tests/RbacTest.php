@@ -13,10 +13,16 @@ class RbacTest extends RbacTestCase
     
     public function setUp()
     {
-        Jf::loadConfig(static::getSQLConfig('pdo_mysql'));
-        Jf::loadConnection();
+        $config = self::getSQLConfig('pdo_mysql');
         
-        $this->rbacManager = Rbac::getInstance()->getManager();
+        $dsn = "mysql:dbname={$config['dbname']};host={$config['host']}";
+
+        $DBConnection = new \PDO($dsn, $config['user'], $config['pass']);
+        
+        $rbac = Rbac::getInstance();
+        $rbac->init($DBConnection, 'kilix_rbac_');
+        
+        $this->rbacManager = $rbac->getRbacManager();
         $this->rbacManager->reset(true);
     }
     
@@ -42,6 +48,6 @@ class RbacTest extends RbacTestCase
     
     public function testTablePrefix()
     {
-        $this->assertInternalType('string', Rbac::getInstance()->tablePrefix());
+        $this->assertInternalType('string', Rbac::getInstance()->getDatabaseManager()->getTablePrefix());
     }
 }
