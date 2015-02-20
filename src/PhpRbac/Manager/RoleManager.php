@@ -36,25 +36,6 @@ class RoleManager extends BaseRbacManager
         $this->type = 'roles';
         $this->roles = new FullNestedSet(Rbac::getInstance()->getDatabaseManager()->getTablePrefix() . 'roles', 'ID', 'Lft', 'Rght');
     }
-    
-    /**
-     * Get ID from a path or a title
-     * 
-     * @param string $item
-     * @return integer
-     */
-    public function getId($item)
-    {
-        return
-            (is_numeric($item))
-            ? $item
-            : (
-                (substr($item, 0, 1) === '/')
-                ? Rbac::getInstance()->getRbacManager()->getRoleManager()->pathId($item)
-                : Rbac::getInstance()->getRbacManager()->getRoleManager()->titleId($item)
-            )
-        ;
-    }
 
     /**
      * Remove roles from system

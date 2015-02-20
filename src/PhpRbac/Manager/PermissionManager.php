@@ -35,25 +35,6 @@ class PermissionManager extends BaseRbacManager
     {
         $this->permissions = new FullNestedSet(Rbac::getInstance()->getDatabaseManager()->getTablePrefix() . 'permissions', 'ID', 'Lft', 'Rght');
     }
-        
-    /**
-     * Get ID from a path or a title
-     * 
-     * @param string $item
-     * @return integer
-     */
-    public function getId($item)
-    {
-        return
-            (is_numeric($item))
-            ? $item
-            : (
-                (substr($item, 0, 1) == '/')
-                ? Rbac::getInstance()->getRbacManager()->getPermissionManager()->pathId($item)
-                : Rbac::getInstance()->getRbacManager()->getPermissionManager()->titleId($item)
-            ) 
-        ;
-    }
 
 	/**
 	 * Remove permissions from system

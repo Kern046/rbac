@@ -113,7 +113,26 @@ abstract class BaseRbacManager extends JModel
         );
         return (int)$Res[0]['COUNT(*)'];
     }
-
+        
+    /**
+     * Get ID from a path or a title
+     * 
+     * @param string $item
+     * @return integer
+     */
+    public function getId($item)
+    {
+        return
+            (is_numeric($item))
+            ? $item
+            : (
+                (substr($item, 0, 1) == '/')
+                ? $this->pathId($item)
+                : $this->titleId($item)
+            ) 
+        ;
+    }
+    
     /**
      * Returns ID of entity
      *
