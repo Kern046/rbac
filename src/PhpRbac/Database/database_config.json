@@ -1,8 +1,0 @@
-{
-    "adapter"       : "pdo_sqlite",
-    "host"          : null,
-    "user"          : null,
-    "pass"          : null,
-    "dbname"        : ":memory:",
-    "table_prefix"  : "kilix_rbac_"
-}

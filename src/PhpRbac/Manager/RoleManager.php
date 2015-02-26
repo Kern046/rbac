@@ -19,61 +19,22 @@ use PhpRbac\Rbac;
  */
 class RoleManager extends BaseRbacManager
 {
-    /**
-     * Roles Nested Set
-     *
-     * @var FullNestedSet
-     */
-    protected $roles = null;
-
-    protected function type()
-    {
-        return 'roles';
-    }
-
     function __construct()
     {
         $this->type = 'roles';
-        $this->roles = new FullNestedSet(Rbac::getInstance()->getDatabaseManager()->getTablePrefix() . 'roles', 'ID', 'Lft', 'Rght');
+        $this->nestedSet = new FullNestedSet(
+            Rbac::getInstance()->getDatabaseManager()->getTablePrefix() . 'roles',
+        'ID', 'Lft', 'Rght');
     }
     
     /**
-     * Get ID from a path or a title
-     * 
-     * @param string $item
-     * @return integer
+     * {@inheritdoc}
      */
-    public function getId($item)
+    public function remove($id, $recursive = false)
     {
-        return
-            (is_numeric($item))
-            ? $item
-            : (
-                (substr($item, 0, 1) === '/')
-                ? Rbac::getInstance()->getRbacManager()->getRoleManager()->pathId($item)
-                : Rbac::getInstance()->getRbacManager()->getRoleManager()->titleId($item)
-            )
-        ;
-    }
-
-    /**
-     * Remove roles from system
-     *
-     * @param integer $ID
-     *        	role id
-     * @param boolean $Recursive
-     *        	delete all descendants
-     *
-     */
-    function remove($ID, $Recursive = false)
-    {
-        $this->unassignPermissions($ID);
-        $this->unassignUsers($ID);
-        if (!$Recursive)
-        {
-            return $this->roles->deleteConditional('ID=?', $ID);
-        }
-        return $this->roles->deleteSubtreeConditional('ID=?', $ID);
+        $this->unassignPermissions($id);
+        $this->unassignUsers($id);
+        return parent::remove($id, $recursive);
     }
 
     /**

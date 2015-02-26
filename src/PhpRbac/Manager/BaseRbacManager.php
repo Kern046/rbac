@@ -5,6 +5,8 @@ use PhpRbac\Database\JModel;
 
 use PhpRbac\Rbac;
 
+use PhpRbac\NestedSet\FullNestedSet;
+
 /**
  * Rbac base class, it contains operations that are essentially the same for
  * permissions and roles
@@ -15,37 +17,32 @@ use PhpRbac\Rbac;
  */
 abstract class BaseRbacManager extends JModel
 {
-    function rootId()
+    /** @var FullNestedSet */
+    protected $nestedSet;
+    /** @var string **/
+    protected $type;
+    
+    public function rootId()
     {
         return 1;
     }
-
-    /**
-     * Return type of current instance, e.g roles, permissions
-     *
-     * @return string
-     */
-    abstract protected function type();
-
+    
     /**
      * Adds a new role or permission
      * Returns new entry's ID
      *
      * @param string $Title
-     *        	Title of the new entry
      * @param string $Description
-     *        	Description of the new entry
      * @param integer $ParentID
-     *        	optional ID of the parent node in the hierarchy
-     * @return integer ID of the new entry
+     * @return integer
      */
-    function add($Title, $Description, $ParentID = null)
+    public function add($Title, $Description, $ParentID = null)
     {
         if ($ParentID === null)
         {
             $ParentID = $this->rootId();
         }
-        return (int)$this->{$this->type()}->insertChildData([
+        return (int) $this->nestedSet->insertChildData([
             'Title' => $Title,
             'Description' => $Description
         ], 'ID=?', $ParentID);
@@ -54,15 +51,15 @@ abstract class BaseRbacManager extends JModel
     /**
      * Adds a path and all its components.
      * Will not replace or create siblings if a component exists.
-     *
+     * $Path is such as /some/role/some/where - Must begin with a / (slash)
+     * $Descriptions is an array of descriptions (will add with empty description if not available)
+     * Return the number of nodes created (0 if none created)
+     * 
      * @param string $Path
-     *        	such as /some/role/some/where - Must begin with a / (slash)
      * @param array $Descriptions
-     *        	array of descriptions (will add with empty description if not available)
-     *
-     * @return integer Number of nodes created (0 if none created)
+     * @return integer
      */
-    function addPath($Path, array $Descriptions = null)
+    public function addPath($Path, array $Descriptions = null)
     {
         if ($Path[0] !== '/')
         {
@@ -104,16 +101,35 @@ abstract class BaseRbacManager extends JModel
      *
      * @return integer
      */
-    function count()
+    public function count()
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
         $Res = $databaseManager->request(
-            "SELECT COUNT(*) FROM {$databaseManager->getTablePrefix()}{$this->type()}"
+            "SELECT COUNT(*) FROM {$databaseManager->getTablePrefix()}{$this->type}"
         );
         return (int)$Res[0]['COUNT(*)'];
     }
-
+        
+    /**
+     * Get ID from a path or a title
+     * 
+     * @param string $item
+     * @return integer
+     */
+    public function getId($item)
+    {
+        return
+            (is_numeric($item))
+            ? $item
+            : (
+                (substr($item, 0, 1) === '/')
+                ? $this->pathId($item)
+                : $this->titleId($item)
+            ) 
+        ;
+    }
+    
     /**
      * Returns ID of entity
      *
@@ -178,8 +194,8 @@ abstract class BaseRbacManager extends JModel
 
         $res = $databaseManager->request(
             "SELECT node.ID,{$GroupConcat} AS Path
-            FROM {$tablePrefix}{$this->type()} AS node,
-            {$tablePrefix}{$this->type()} AS parent
+            FROM {$tablePrefix}{$this->type} AS node,
+            {$tablePrefix}{$this->type} AS parent
             WHERE node.Lft BETWEEN parent.Lft AND parent.Rght
             AND  node.Title=?
             GROUP BY node.ID
@@ -193,16 +209,16 @@ abstract class BaseRbacManager extends JModel
         return null;
         // TODO: make the below SQL work, so that 1024 limit is over
         /**
-        $QueryBase = ("SELECT n0.ID  \nFROM {$tablePrefix}{$this->type()} AS n0");
+        $QueryBase = ("SELECT n0.ID  \nFROM {$tablePrefix}{$this->type} AS n0");
         $QueryCondition = "\nWHERE 	n0.Title=?";
 
         for($i = 1; $i < count ( $Parts ); ++ $i)
         {
                 $j = $i - 1;
-                $QueryBase .= "\nJOIN 		{$tablePrefix}{$this->type()} AS n{$i} ON (n{$j}.Lft BETWEEN n{$i}.Lft+1 AND n{$i}.Rght)";
+                $QueryBase .= "\nJOIN 		{$tablePrefix}{$this->type} AS n{$i} ON (n{$j}.Lft BETWEEN n{$i}.Lft+1 AND n{$i}.Rght)";
                 $QueryCondition .= "\nAND 	n{$i}.Title=?";
                 // Forcing middle elements
-                $QueryBase .= "\nLEFT JOIN 	{$tablePrefix}{$this->type()} AS nn{$i} ON (nn{$i}.Lft BETWEEN n{$i}.Lft+1 AND n{$j}.Lft-1)";
+                $QueryBase .= "\nLEFT JOIN 	{$tablePrefix}{$this->type} AS nn{$i} ON (nn{$i}.Lft BETWEEN n{$i}.Lft+1 AND n{$j}.Lft-1)";
                 $QueryCondition .= "\nAND 	nn{$i}.Lft IS NULL";
         }
         $Query = $QueryBase . $QueryCondition;
@@ -228,7 +244,7 @@ abstract class BaseRbacManager extends JModel
      */
     public function titleId($Title)
     {
-        return $this->{$this->type()}->getID('Title=?', $Title);
+        return $this->nestedSet->getID('Title=?', $Title);
     }
 
     /**
@@ -239,7 +255,7 @@ abstract class BaseRbacManager extends JModel
     protected function getRecord($ID)
     {
         return call_user_func_array(
-            [$this->{$this->type ()}, 'getRecord']
+            [$this->nestedSet, 'getRecord']
         , func_get_args ());
     }
 
@@ -249,7 +265,7 @@ abstract class BaseRbacManager extends JModel
      * @param integer $ID
      * @return string NULL
      */
-    function getTitle($ID)
+    public function getTitle($ID)
     {
         if(($r = $this->getRecord('ID=?', $ID)) !== null)
         {
@@ -264,9 +280,9 @@ abstract class BaseRbacManager extends JModel
      * @param integer $ID
      * @return string path
      */
-    function getPath($ID)
+    public function getPath($ID)
     {
-        $res = $this->{$this->type ()}->pathConditional('ID=?', $ID);
+        $res = $this->nestedSet->pathConditional('ID=?', $ID);
         $out = null;
         if(is_array($res))
         {
@@ -293,7 +309,7 @@ abstract class BaseRbacManager extends JModel
      * @param integer $ID
      * @return string NULL
      */
-    function getDescription($ID)
+    public function getDescription($ID)
     {
         if(($r = $this->getRecord("ID=?", $ID)) !== null)
         {
@@ -310,7 +326,7 @@ abstract class BaseRbacManager extends JModel
      * @param string $NewDescription
      *
      */
-    function edit($ID, $NewTitle = null, $NewDescription = null)
+    public function edit($ID, $NewTitle = null, $NewDescription = null)
     {
         $Data = [];
 
@@ -323,7 +339,7 @@ abstract class BaseRbacManager extends JModel
         {
             $Data['Description'] = $NewDescription;
         }           
-        return $this->{$this->type()}->editData($Data, 'ID=?', $ID) == 1;
+        return $this->nestedSet->editData($Data, 'ID=?', $ID) == 1;
     }
 
     /**
@@ -333,9 +349,9 @@ abstract class BaseRbacManager extends JModel
      * @return array
      *
      */
-    function children($ID)
+    public function children($ID)
     {
-        return $this->{$this->type()}->childrenConditional('ID=?', $ID);
+        return $this->nestedSet->childrenConditional('ID=?', $ID);
     }
 
     /**
@@ -345,9 +361,9 @@ abstract class BaseRbacManager extends JModel
      * @return array with keys as titles and Title,ID, Depth and Description
      *
      */
-    function descendants($ID)
+    public function descendants($ID)
     {
-        $res = $this->{$this->type ()}->descendantsConditional(false, 'ID=?', $ID);
+        $res = $this->nestedSet->descendantsConditional(false, 'ID=?', $ID);
         $out = [];
         if(is_array($res))
         {
@@ -364,9 +380,9 @@ abstract class BaseRbacManager extends JModel
      *
      * @param integer $ID
      */
-    function depth($ID)
+    public function depth($ID)
     {
-        return $this->{$this->type()}->depthConditional('ID=?', $ID);
+        return $this->nestedSet->depthConditional('ID=?', $ID);
     }
 
     /**
@@ -376,9 +392,9 @@ abstract class BaseRbacManager extends JModel
      * @return array including Title, Description and ID
      *
      */
-    function parentNode($ID)
+    public function parentNode($ID)
     {
-        return $this->{$this->type()}->parentNodeConditional('ID=?', $ID);
+        return $this->nestedSet->parentNodeConditional('ID=?', $ID);
     }
 
     /**
@@ -391,7 +407,7 @@ abstract class BaseRbacManager extends JModel
      * @return integer number of deleted entries
      *
      */
-    function reset($Ensure = false)
+    public function reset($Ensure = false)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
@@ -401,30 +417,47 @@ abstract class BaseRbacManager extends JModel
             throw new \Exception ('You must pass true to this function, otherwise it won\'t work.');
         }
         
-        $res = $databaseManager->request("DELETE FROM {$tablePrefix}{$this->type()}");
+        $res = $databaseManager->request("DELETE FROM {$tablePrefix}{$this->type}");
         
         $Adapter = get_class($databaseManager->getConnection());
         
         if($this->isMySql())
         {
-            $databaseManager->request("ALTER TABLE {$tablePrefix}{$this->type()} AUTO_INCREMENT=1");
+            $databaseManager->request("ALTER TABLE {$tablePrefix}{$this->type} AUTO_INCREMENT=1");
         }    
         elseif($this->isSQLite())
         {
-            $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}{$this->type()}");
+            $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}{$this->type}");
         }
         else
         {
             throw new \Exception("Rbac can not reset table on this type of database: {$Adapter}");
         }     
         $databaseManager->request(
-            "INSERT INTO {$tablePrefix}{$this->type()} (Title,Description,Lft,Rght) VALUES (?,?,?,?)",
+            "INSERT INTO {$tablePrefix}{$this->type} (Title,Description,Lft,Rght) VALUES (?,?,?,?)",
             "root",
             "root",
             0,
             1
         );
         return (int) $res;
+    }
+    
+    /**
+     * Remove roles or permissions from system
+     * If $recursive is set to true, it deletes all descendants
+     *
+     * @param integer $ID
+     * @param boolean $recursive
+     * @return boolean
+     */
+    public function remove($ID, $recursive = false)
+    {
+        if($recursive === true)
+        {
+            return $this->nestedSet->deleteSubtreeConditional('ID=?', $ID);
+        }
+        return $this->nestedSet->deleteConditional('ID=?', $ID);
     }
 
     /**
@@ -439,7 +472,7 @@ abstract class BaseRbacManager extends JModel
      * @todo: Check for valid permissions/roles
      * @todo: Implement custom error handler
      */
-    function assign($Role, $Permission)
+    public function assign($Role, $Permission)
     {
         $rbac = Rbac::getInstance();
         
@@ -465,7 +498,7 @@ abstract class BaseRbacManager extends JModel
      *         Id, Title and Path
      * @return boolean
      */
-    function unassign($Role, $Permission)
+    public function unassign($Role, $Permission)
     {
         $rbac = Rbac::getInstance();
         
@@ -489,7 +522,7 @@ abstract class BaseRbacManager extends JModel
      *        	must be set to true or throws an \Exception
      * @return number of deleted assignments
      */
-    function resetAssignments($Ensure = false)
+    public function resetAssignments($Ensure = false)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
