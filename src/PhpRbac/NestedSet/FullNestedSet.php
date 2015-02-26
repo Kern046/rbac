@@ -155,10 +155,11 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
             $this->unlock();
             return false;
         }
+        
         $Info = $Info[0];
 
         $count = $databaseManager->request("DELETE FROM {$this->table()} WHERE {$this->left()} = ?",$Info["Left"]);
-
+        
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - 1,
             {$this->left()} = {$this->left()} - 1 WHERE {$this->left()} BETWEEN ? AND ?"
@@ -176,7 +177,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
         
         $this->unlock();
         
-        return $count==1;
+        return $count === 1;
     }
     
     /**
