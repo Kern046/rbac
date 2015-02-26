@@ -15,7 +15,7 @@
 
     <testsuites>
         <testsuite name="PHP RBAC test suite">
-            <directory suffix="Test.php">./tests</directory>
+            <directory suffix="Test.php">./src/PhpRbac/Tests/</directory>
         </testsuite>
     </testsuites>
 
@@ -37,7 +37,7 @@
         <whitelist>
             <directory>./</directory>
             <exclude>
-                <directory>./tests</directory>
+                <directory>./src/PhpRbac/Tests</directory>
                 <directory>./vendor</directory>
             </exclude>
         </whitelist>
