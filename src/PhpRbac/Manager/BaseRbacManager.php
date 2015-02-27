@@ -15,85 +15,63 @@ use PhpRbac\NestedSet\FullNestedSet;
  * @author abiusx
  * @version 1.0
  */
-abstract class BaseRbacManager extends JModel
+abstract class BaseRbacManager extends JModel implements BaseRbacManagerInterface
 {
     /** @var FullNestedSet */
     protected $nestedSet;
     /** @var string **/
     protected $type;
-    
-    public function rootId()
-    {
-        return 1;
-    }
+    /** @var integer **/
+    protected $rootId = 1;
     
     /**
-     * Adds a new role or permission
-     * Returns new entry's ID
-     *
-     * @param string $Title
-     * @param string $Description
-     * @param integer $ParentID
-     * @return integer
+     * {@inheritdoc}
      */
-    public function add($Title, $Description, $ParentID = null)
+    public function add($title, $description, $parentId = null)
     {
-        if ($ParentID === null)
+        if($parentId === null)
         {
-            $ParentID = $this->rootId();
+            $parentId = $this->rootId;
         }
-        return (int) $this->nestedSet->insertChildData([
-            'Title' => $Title,
-            'Description' => $Description
-        ], 'ID=?', $ParentID);
+        return $this->nestedSet->insertChildData([
+            'Title' => $title,
+            'Description' => $description
+        ], 'ID=?', $parentId);
     }
 
     /**
-     * Adds a path and all its components.
-     * Will not replace or create siblings if a component exists.
-     * $Path is such as /some/role/some/where - Must begin with a / (slash)
-     * $Descriptions is an array of descriptions (will add with empty description if not available)
-     * Return the number of nodes created (0 if none created)
-     * 
-     * @param string $Path
-     * @param array $Descriptions
-     * @return integer
+     * {@inheritdoc}
      */
-    public function addPath($Path, array $Descriptions = null)
+    public function addPath($path, array $descriptions = null)
     {
-        if ($Path[0] !== '/')
+        if ($path[0] !== '/')
         {
             throw new \Exception ('The path supplied is not valid.');
         }
-        $Path = substr($Path, 1);
-        $Parts = explode('/', $Path);
-        $Parent = 1;
-        $index = 0;
-        $CurrentPath = '';
-        $NodesCreated = 0;
+        $path = substr($path, 1);
+        $parts = explode('/', $path);
+        $nbParts = count($parts);
+        $parent = 1;
+        $currentPath = '';
+        $nodesCreated = 0;
 
-        foreach($Parts as $p)
+        for($i = 0; $i < $nbParts; ++$i)
         {
-            $Description =
-                (isset ($Descriptions[$index]))
-                ? $Descriptions[$index]
+            $description =
+                (isset($descriptions[$i]))
+                ? $descriptions[$i]
                 : ''
             ;
-            $CurrentPath .= "/{$p}";
-            $t = $this->pathId($CurrentPath);
-            if(!$t)
+            $currentPath .= "/{$parts[$i]}";
+            if(!($t = $this->pathId($currentPath)))
             {
-                $IID = $this->add($p, $Description, $Parent);
-                $Parent = $IID;
-                $NodesCreated++;
+                $parent = $this->add($parts[$i], $description, $parent);
+                ++$nodesCreated;
+                continue;
             }
-            else
-            {
-                $Parent = $t;
-            }
-            ++$index;
+            $parent = $t;
         }
-        return (int)$NodesCreated;
+        return $nodesCreated;
     }
 
     /**
@@ -462,75 +440,74 @@ abstract class BaseRbacManager extends JModel
 
     /**
      * Assigns a role to a permission (or vice-verse)
-     *
-     * @param mixed $Role
-     *         Id, Title and Path
-     * @param mixed $Permission
-     *         Id, Title and Path
+     * $role can be an id, title or path
+     * $permission can be an id, title or path
+     * 
+     * @param mixed $role
+     * @param mixed $permission
      * @return boolean inserted or existing
      *
      * @todo: Check for valid permissions/roles
      * @todo: Implement custom error handler
      */
-    public function assign($Role, $Permission)
+    public function assign($role, $permission)
     {
         $rbac = Rbac::getInstance();
         
         $manager = $rbac->getRbacManager();
         $databaseManager = $rbac->getDatabaseManager();
         
-        $RoleID = $manager->getRoleManager()->getId($Role);
-        $PermissionID = $manager->getPermissionManager()->getId($Permission);
+        $roleId = $manager->getRoleManager()->getId($role);
+        $permissionId = $manager->getPermissionManager()->getId($permission);
 
         return $databaseManager->request(
             'INSERT INTO ' . $databaseManager->getTablePrefix() . 'rolepermissions
             (RoleID,PermissionID,AssignmentDate)
-            VALUES (?,?,?)', $RoleID, $PermissionID, time()
+            VALUES (?,?,?)', $roleId, $permissionId, time()
         ) >= 1;
     }
 
     /**
      * Unassigns a role-permission relation
+     * $role can be an id, title or path
+     * $permission can be an id, title or path
      *
-     * @param mixed $Role
-     *         Id, Title and Path
-     * @param mixed $Permission:
-     *         Id, Title and Path
+     * @param mixed $role
+     * @param mixed $permission
      * @return boolean
      */
-    public function unassign($Role, $Permission)
+    public function unassign($role, $permission)
     {
         $rbac = Rbac::getInstance();
         
         $manager = $rbac->getRbacManager();
         $databaseManager = $rbac->getDatabaseManager();
         
-        $RoleID = $manager->getRoleManager()->getId($Role);
-        $PermissionID = $manager->getPermissionManager()->getId($Permission);
+        $roleId = $manager->getRoleManager()->getId($role);
+        $permissionId = $manager->getPermissionManager()->getId($permission);
         
         return $databaseManager->request(
             'DELETE FROM ' . $databaseManager->getTablePrefix() . 'rolepermissions WHERE
             RoleID=? AND PermissionID=?'
-        , $RoleID, $PermissionID) == 1;
+        , $roleId, $permissionId) == 1;
     }
 
     /**
      * Remove all role-permission relations
      * mostly used for testing
+     * $ensure must be set to true or throws an \Exception
      *
-     * @param boolean $Ensure
-     *        	must be set to true or throws an \Exception
+     * @param boolean $ensure
      * @return number of deleted assignments
      */
-    public function resetAssignments($Ensure = false)
+    public function resetAssignments($ensure = false)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        if($Ensure !== true)
+        if($ensure !== true)
         {
-            throw new \Exception ("You must pass true to this function, otherwise it won't work.");
-            return;
+            throw new \Exception ('You must pass true to this function, otherwise it won\'t work.');
         }
         
         $res = $databaseManager->request("DELETE FROM {$tablePrefix}rolepermissions");
@@ -548,7 +525,7 @@ abstract class BaseRbacManager extends JModel
         {
             throw new \Exception ("Rbac can not reset table on this type of database: {$Adapter}");
         }
-        $this->assign($this->rootId(), $this->rootId());
+        $this->assign($this->rootId, $this->rootId);
         return $res;
     }
 }
