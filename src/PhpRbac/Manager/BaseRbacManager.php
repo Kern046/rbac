@@ -73,9 +73,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Return count of the entity
-     *
-     * @return integer
+     * {@inheritdoc}
      */
     public function count()
     {
@@ -88,10 +86,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
         
     /**
-     * Get ID from a path or a title
-     * 
-     * @param string $item
-     * @return integer
+     * {@inheritdoc}
      */
     public function getId($item)
     {
@@ -107,11 +102,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
     
     /**
-     * Returns ID of entity
-     *
-     * @param string $entity (Path or Title)
-     *
-     * @return mixed ID of entity or null
+     * {@inheritdoc}
      */
     public function returnId($entity = null)
     {
@@ -123,26 +114,21 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Returns ID of a path
-     *
-     * @todo this has a limit of 1000 characters on $Path
-     * @param string $Path
-     *        	such as /role1/role2/role3 ( a single slash is root)
-     * @return integer NULL
+     * {@inheritdoc}
      */
-    public function pathId($Path)
+    public function pathId($path)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $databaseConnection = $databaseManager->getConnection();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        $Path = "root{$Path}";
+        $path = "root{$path}";
 
-        if($Path[strlen($Path) - 1] === '/')
+        if($path[strlen($path) - 1] === '/')
         {
-            $Path = substr($Path, 0, strlen($Path) - 1);
+            $path = substr($path, 0, strlen($path) - 1);
         }
-        $Parts = explode('/', $Path);
+        $Parts = explode('/', $path);
         
         $Adapter = get_class($databaseConnection);
         
@@ -176,7 +162,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
             AND  node.Title=?
             GROUP BY node.ID
             HAVING Path = ?"
-        , $Parts[count($Parts) - 1], $Path);
+        , $Parts[count($Parts) - 1], $path);
 
         if($res !== false)
         {
@@ -213,22 +199,17 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Returns ID belonging to a title, and the first one on that
-     *
-     * @param string $Title
-     * @return integer Id of specified Title
+     * {@inheritdoc}
      */
-    public function titleId($Title)
+    public function titleId($title)
     {
-        return $this->nestedSet->getID('Title=?', $Title);
+        return $this->nestedSet->getID('Title=?', $title);
     }
 
     /**
-     * Return the whole record of a single entry (including Rght and Lft fields)
-     *
-     * @param integer $ID
+     * {@inheritdoc}
      */
-    protected function getRecord($ID)
+    public function getRecord($id)
     {
         return call_user_func_array(
             [$this->nestedSet, 'getRecord']
@@ -236,14 +217,11 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Returns title of entity
-     *
-     * @param integer $ID
-     * @return string NULL
+     * {@inheritdoc}
      */
-    public function getTitle($ID)
+    public function getTitle($id)
     {
-        if(($r = $this->getRecord('ID=?', $ID)) !== null)
+        if(($r = $this->getRecord('ID=?', $id)) !== null)
         {
             return $r['Title'];
         }
@@ -251,14 +229,11 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Returns path of a node
-     *
-     * @param integer $ID
-     * @return string path
+     * {@inheritdoc}
      */
-    public function getPath($ID)
+    public function getPath($id)
     {
-        $res = $this->nestedSet->pathConditional('ID=?', $ID);
+        $res = $this->nestedSet->pathConditional('ID=?', $id);
         $out = null;
         if(is_array($res))
         {
@@ -280,14 +255,11 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Return description of entity
-     *
-     * @param integer $ID
-     * @return string NULL
+     * {@inheritdoc}
      */
-    public function getDescription($ID)
+    public function getDescription($id)
     {
-        if(($r = $this->getRecord("ID=?", $ID)) !== null)
+        if(($r = $this->getRecord("ID=?", $id)) !== null)
         {
             return $r['Description'];
         }
@@ -295,51 +267,38 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Edits an entity, changing title and/or description. Maintains Id.
-     *
-     * @param integer $ID
-     * @param string $NewTitle
-     * @param string $NewDescription
-     *
+     * {@inheritdoc}
      */
-    public function edit($ID, $NewTitle = null, $NewDescription = null)
+    public function edit($id, $newTitle = null, $newDescription = null)
     {
         $Data = [];
 
-        if($NewTitle !== null)
+        if($newTitle !== null)
         {
-            $Data['Title'] = $NewTitle;
+            $Data['Title'] = $newTitle;
         }
 
-        if($NewDescription !== null)
+        if($newDescription !== null)
         {
-            $Data['Description'] = $NewDescription;
+            $Data['Description'] = $newDescription;
         }           
-        return $this->nestedSet->editData($Data, 'ID=?', $ID) == 1;
+        return $this->nestedSet->editData($Data, 'ID=?', $id) == 1;
     }
 
     /**
-     * Returns children of an entity
-     *
-     * @param integer $ID
-     * @return array
-     *
+     * {@inheritdoc}
      */
-    public function children($ID)
+    public function children($id)
     {
-        return $this->nestedSet->childrenConditional('ID=?', $ID);
+        return $this->nestedSet->childrenConditional('ID=?', $id);
     }
 
     /**
-     * Returns descendants of a node, with their depths in integer
-     *
-     * @param integer $ID
-     * @return array with keys as titles and Title,ID, Depth and Description
-     *
+     * {@inheritdoc}
      */
-    public function descendants($ID)
+    public function descendants($id)
     {
-        $res = $this->nestedSet->descendantsConditional(false, 'ID=?', $ID);
+        $res = $this->nestedSet->descendantsConditional(false, 'ID=?', $id);
         $out = [];
         if(is_array($res))
         {
@@ -352,43 +311,30 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Return depth of a node
-     *
-     * @param integer $ID
+     * {@inheritdoc}
      */
-    public function depth($ID)
+    public function depth($id)
     {
-        return $this->nestedSet->depthConditional('ID=?', $ID);
+        return $this->nestedSet->depthConditional('ID=?', $id);
     }
 
     /**
-     * Returns parent of a node
-     *
-     * @param integer $ID
-     * @return array including Title, Description and ID
-     *
+     * {@inheritdoc}
      */
-    public function parentNode($ID)
+    public function parentNode($id)
     {
-        return $this->nestedSet->parentNodeConditional('ID=?', $ID);
+        return $this->nestedSet->parentNodeConditional('ID=?', $id);
     }
 
     /**
-     * Reset the table back to its initial state
-     * Keep in mind that this will not touch relations
-     *
-     * @param boolean $Ensure
-     *        	must be true to work, otherwise an \Exception is thrown
-     * @throws \Exception
-     * @return integer number of deleted entries
-     *
+     * {@inheritdoc}
      */
-    public function reset($Ensure = false)
+    public function reset($ensure = false)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        if($Ensure !== true)
+        if($ensure !== true)
         {
             throw new \Exception ('You must pass true to this function, otherwise it won\'t work.');
         }
@@ -420,33 +366,19 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
     
     /**
-     * Remove roles or permissions from system
-     * If $recursive is set to true, it deletes all descendants
-     *
-     * @param integer $ID
-     * @param boolean $recursive
-     * @return boolean
+     * {@inheritdoc}
      */
-    public function remove($ID, $recursive = false)
+    public function remove($id, $recursive = false)
     {
         if($recursive === true)
         {
-            return $this->nestedSet->deleteSubtreeConditional('ID=?', $ID);
+            return $this->nestedSet->deleteSubtreeConditional('ID=?', $id);
         }
-        return $this->nestedSet->deleteConditional('ID=?', $ID);
+        return $this->nestedSet->deleteConditional('ID=?', $id);
     }
 
     /**
-     * Assigns a role to a permission (or vice-verse)
-     * $role can be an id, title or path
-     * $permission can be an id, title or path
-     * 
-     * @param mixed $role
-     * @param mixed $permission
-     * @return boolean inserted or existing
-     *
-     * @todo: Check for valid permissions/roles
-     * @todo: Implement custom error handler
+     * {@inheritdoc}
      */
     public function assign($role, $permission)
     {
@@ -466,13 +398,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Unassigns a role-permission relation
-     * $role can be an id, title or path
-     * $permission can be an id, title or path
-     *
-     * @param mixed $role
-     * @param mixed $permission
-     * @return boolean
+     * {@inheritdoc}
      */
     public function unassign($role, $permission)
     {
@@ -491,12 +417,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     }
 
     /**
-     * Remove all role-permission relations
-     * mostly used for testing
-     * $ensure must be set to true or throws an \Exception
-     *
-     * @param boolean $ensure
-     * @return number of deleted assignments
+     * {@inheritdoc}
      */
     public function resetAssignments($ensure = false)
     {
