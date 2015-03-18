@@ -1,8 +1,6 @@
 <?php
 namespace PhpRbac\Manager;
 
-use PhpRbac\Database\JModel;
-
 use PhpRbac\Exception\RbacPermissionNotFoundException;
 use PhpRbac\Exception\RbacUserNotProvidedException;
 
@@ -22,7 +20,7 @@ use PhpRbac\Rbac;
  * @author abiusx
  * @version 1.0
  */
-class RbacManager extends JModel
+class RbacManager
 {
     /** @var PermissionManager **/
     private $permissionManager;
@@ -124,7 +122,7 @@ class RbacManager extends JModel
         }
             
         $LastPart =
-            ($this->isSQLite())
+            ($databaseManager->isSQLite())
             ? "AS Temp ON ( TR.ID = Temp.RoleID)
             WHERE TUrel.UserID=? AND Temp.ID=?"
             : "ON ( TR.ID = TRel.RoleID)

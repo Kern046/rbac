@@ -2,8 +2,6 @@
 
 namespace PhpRbac\Manager;
 
-use PhpRbac\Database\JModel;
-
 use PhpRbac\Rbac;
 
 use PhpRbac\Exception\RbacUserNotProvidedException;
@@ -20,7 +18,7 @@ use PhpRbac\Exception\RbacUserNotProvidedException;
  * @author abiusx
  * @version 1.0
  */
-class UserManager extends JModel
+class UserManager
 {
 	/**
 	 * Checks to see whether a user has a role or not
@@ -192,11 +190,11 @@ class UserManager extends JModel
             $res = $databaseManager->request("DELETE FROM {$tablePrefix}userroles");
 
             $Adapter = get_class($databaseManager->getConnection());
-            if($this->isMySql())
+            if($databaseManager->isMySql())
             {
                 $databaseManager->request("ALTER TABLE {$tablePrefix}userroles AUTO_INCREMENT = 1");
             }    
-            elseif ($this->isSQLite())
+            elseif ($databaseManager->isSQLite())
             {
                 $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}_userroles");
             } 

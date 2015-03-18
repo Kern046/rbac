@@ -1,4 +1,6 @@
 <?php
+
+namespace PhpRbac\Manager;
 /* 
  * @name BaseRbacManagerInterface
  * @author Axel Venet <axel-venet@developtech.fr>

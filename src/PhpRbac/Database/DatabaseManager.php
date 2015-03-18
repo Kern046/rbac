@@ -42,6 +42,31 @@ class DatabaseManager
     {
         return $this->tablePrefix;
     }
+    
+    /**
+     * @return boolean
+     */
+    public function isSQLite()
+    {
+	return
+            $this->connection instanceof \PDO &&
+            $this->connection->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite'
+        ;
+    }
+    
+    /**
+     * @return boolean
+     */
+    public function isMySql()
+    {
+        return
+            $this->connection instanceof \mysqli ||
+            (
+                $this->connection instanceof \PDO &&
+                $this->connection->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql'
+            )
+        ;
+    }
 
     /**
      * The Jf::sql function. The behavior of this function is as follows:

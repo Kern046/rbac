@@ -1,8 +1,6 @@
 <?php
 namespace PhpRbac\Manager;
 
-use PhpRbac\Database\JModel;
-
 use PhpRbac\Rbac;
 
 use PhpRbac\NestedSet\FullNestedSet;
@@ -15,7 +13,7 @@ use PhpRbac\NestedSet\FullNestedSet;
  * @author abiusx
  * @version 1.0
  */
-abstract class BaseRbacManager extends JModel implements BaseRbacManagerInterface
+abstract class BaseRbacManager implements BaseRbacManagerInterface
 {
     /** @var FullNestedSet */
     protected $nestedSet;
@@ -399,11 +397,11 @@ abstract class BaseRbacManager extends JModel implements BaseRbacManagerInterfac
         
         $Adapter = get_class($databaseManager->getConnection());
         
-        if($this->isMySql())
+        if($databaseManager->isMySql())
         {
             $databaseManager->request("ALTER TABLE {$tablePrefix}{$this->type} AUTO_INCREMENT=1");
         }    
-        elseif($this->isSQLite())
+        elseif($databaseManager->isSQLite())
         {
             $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}{$this->type}");
         }
@@ -513,11 +511,11 @@ abstract class BaseRbacManager extends JModel implements BaseRbacManagerInterfac
         $res = $databaseManager->request("DELETE FROM {$tablePrefix}rolepermissions");
 
         $Adapter = get_class($databaseManager->getConnection());
-        if($this->isMySql())
+        if($databaseManager->isMySql())
         {
             $databaseManager->request("ALTER TABLE {$tablePrefix}rolepermissions AUTO_INCREMENT =1 ");
         }
-        elseif($this->isSQLite())
+        elseif($databaseManager->isSQLite())
         {
             $databaseManager->request("delete from sqlite_sequence where name=? ", "{$tablePrefix}_rolepermissions");
         }
