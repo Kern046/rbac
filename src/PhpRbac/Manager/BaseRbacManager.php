@@ -93,11 +93,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
         return
             (is_numeric($item))
             ? $item
-            : (
-                (substr($item, 0, 1) === '/')
-                ? $this->pathId($item)
-                : $this->titleId($item)
-            ) 
+            : $this->returnId($item)
         ;
     }
     
