@@ -52,7 +52,7 @@ class UserManager
                     JOIN {$tablePrefix}roles AS TRdirect ON (TRdirect.ID=TUR.RoleID)
                     JOIN {$tablePrefix}roles AS TR ON (TR.Lft BETWEEN TRdirect.Lft AND TRdirect.Rght)
                     WHERE TUR.UserID=? AND TR.ID=?"
-                , $UserID, $RoleID)
+                , [$UserID, $RoleID])
             !== null);
 	}
 
@@ -84,7 +84,7 @@ class UserManager
             return $databaseManager->request(
                 'INSERT INTO ' . $databaseManager->getTablePrefix() . 'userroles
                 (UserID,RoleID,AssignmentDate) VALUES (?,?,?)'
-            , $UserID, $RoleID, time()) >= 1;
+            , [$UserID, $RoleID, time()]) >= 1;
 	}
 
 	/**
@@ -115,7 +115,7 @@ class UserManager
 	    return $databaseManager->request(
                 'DELETE FROM ' . $databaseManager->getTablePrefix() . 'userroles'
                 . ' WHERE UserID=? AND RoleID=?'
-            , $UserID, $RoleID) >= 1;
+            , [$UserID, $RoleID]) >= 1;
 	}
 
 	/**
@@ -142,7 +142,7 @@ class UserManager
                 "SELECT TR.* FROM {$tablePrefix}userroles AS `TRel`
                 JOIN {$tablePrefix}roles AS `TR` ON
                 (`TRel`.RoleID=`TR`.ID) WHERE TRel.UserID=?"
-            , $UserID);
+            , [$UserID]);
 	}
 
 	/**
@@ -164,27 +164,27 @@ class UserManager
             $Res = $databaseManager->request(
                 'SELECT COUNT(*) AS Result FROM ' . $databaseManager->getTablePrefix()
                 . 'userroles WHERE UserID=?'
-            , $UserID);
+            , [$UserID]);
             return (int) $Res[0]['Result'];
 	}
 
 	/**
 	 * Remove all role-user relations
 	 * mostly used for testing
+	 * $ensure must be set to true or throws an Exception
+         * This method returns the number of deleted relations
 	 *
-	 * @param boolean $Ensure
-	 *        	must set to true or throws an Exception
-	 * @return number of deleted relations
+	 * @param boolean $ensure
+	 * @return integer
 	 */
-	function resetAssignments($Ensure = false)
+	function resetAssignments($ensure = false)
 	{
             $databaseManager = Rbac::getInstance()->getDatabaseManager();
             $tablePrefix = $databaseManager->getTablePrefix();
             
-            if($Ensure !== true)
+            if($ensure !== true)
             {
-                throw new \Exception ("You must pass true to this function, otherwise it won't work.");
-                return;
+                throw new \Exception ('You must pass true to this function, otherwise it won\'t work.');
             }
             
             $res = $databaseManager->request("DELETE FROM {$tablePrefix}userroles");
@@ -196,7 +196,7 @@ class UserManager
             }    
             elseif ($databaseManager->isSQLite())
             {
-                $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}_userroles");
+                $databaseManager->request("delete from sqlite_sequence where name={$tablePrefix}_userroles");
             } 
             else
             {

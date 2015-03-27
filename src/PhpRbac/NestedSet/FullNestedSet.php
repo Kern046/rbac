@@ -28,27 +28,21 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
      */
     protected function unlock()
     {
-    	Rbac::getInstance()->getDatabaseManager()->request("UNLOCK TABLES");
+    	Rbac::getInstance()->getDatabaseManager()->request('UNLOCK TABLES');
     }
     
     /**
      * {@inheritdoc}
      */
-    public function getID($ConditionString, $Rest = null)
+    public function getID($condition, $value)
     {
-        $args = func_get_args();
+        $result = Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT {$this->id()} AS ID FROM {$this->table()} WHERE $condition LIMIT 1"
+        , [$value]);
         
-        array_shift($args);
-        
-        $Query = "SELECT {$this->id()} AS ID FROM {$this->table()} WHERE $ConditionString LIMIT 1";
-        
-        array_unshift($args, $Query);
-        
-        $Res = call_user_func_array([Rbac::getInstance()->getDatabaseManager(), 'request'], $args);
-        
-        if($Res !== false)
+        if($result !== false)
         {
-            return $Res[0]['ID'];
+            return $result[0]['ID'];
         }
         return null;
     }
@@ -56,17 +50,11 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function getRecord($ConditionString, $Rest = null)
+    public function getRecord($id)
     {
-        $args = func_get_args();
-        
-        array_shift($args);
-        
-        $Query = "SELECT * FROM {$this->table()} WHERE $ConditionString";
-        
-        array_unshift($args, $Query);
-        
-        $Res = call_user_func_array([Rbac::getInstance()->getDatabaseManager(), 'request'],$args);
+        $Res = Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT * FROM {$this->table()} WHERE ID=?"
+        , [$id]);
         
         if($Res !== false)
         {
@@ -78,102 +66,90 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function depthConditional($ConditionString, $Rest=null)
+    public function depthConditional($conditionString, $arguments = [])
     {
-        return count(call_user_func_array([$this, 'pathConditional'], func_get_args())) - 1;
+        return count($this->pathConditional($conditionString, $arguments)) - 1;
     }
     
     /**
      * {@inheritdoc}
      */
-    public function siblingConditional($SiblingDistance = 1, $ConditionString, $Rest = null)
+    public function siblingConditional($siblingDistance = 1, $conditionString, $arguments = null)
     {
-        $Arguments = func_get_args();
+        $parent = $this->parentNodeConditional($conditionString, $arguments);
         
-        array_shift($Arguments);
-        
-        $Parent = call_user_func_array([$this, 'parentNodeConditional'], $Arguments);
-        
-        $Siblings = $this->children($Parent[$this->id()]);
-        
-        if (!$Siblings)
+        if (!($siblings = $this->children($parent[$this->id()])))
         {
             return null;
         }
         
-        $ID = call_user_func_array([$this, 'getID'], $Arguments);
+        $id = $this->getID($conditionString, $arguments);
         $n = 0;
         
-        foreach ($Siblings as &$Sibling)
+        foreach ($siblings as &$sibling)
         {
-            if ($Sibling[$this->id()] == $ID)
+            if ($sibling[$this->id()] == $id)
             {
                 break;
             }
             ++$n;
         }
-        return $Siblings[$n + $SiblingDistance];
+        return $siblings[$n + $siblingDistance];
     }
     
     /**
      * {@inheritdoc}
      */
-    public function parentNodeConditional($ConditionString, $Rest = null)
+    public function parentNodeConditional($conditionString, $arguments = [])
     {
-        $Path = call_user_func_array([$this, 'pathConditional'], func_get_args());
-        $nbPaths = count($Path);
+        $path = $this->pathConditional($conditionString, $arguments);
+        $nbPaths = count($path);
         
         if($nbPaths < 2)
         {
             return null;
         }
-        return $Path[$nbPaths - 2];
+        return $path[$nbPaths - 2];
     }
     
     /**
      * {@inheritdoc}
      */
-    public function deleteConditional($ConditionString, $Rest = null)
+    public function deleteConditional($conditionString, $arguments = [])
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
     	$this->lock();
-        
-    	$Arguments=func_get_args();
-        
-        array_shift($Arguments);
-        
-        $Query=
+            
+        $info = $databaseManager->request(
             "SELECT {$this->left()} AS `Left`,{$this->right()} AS `Right`
-            FROM {$this->table()} WHERE $ConditionString LIMIT 1"
-        ;
-
-        array_unshift($Arguments, $Query);
-        
-        if(!($Info = call_user_func_array([$databaseManager, 'request'], $Arguments)))
+            FROM {$this->table()} WHERE $conditionString LIMIT 1"
+        , $arguments);
+            
+        if(!$info)
         {
             $this->unlock();
             return false;
         }
         
-        $Info = $Info[0];
-
-        $count = $databaseManager->request("DELETE FROM {$this->table()} WHERE {$this->left()} = ?",$Info["Left"]);
+        $count = $databaseManager->request(
+            "DELETE FROM {$this->table()} WHERE {$this->left()} = ?",$info[0]["Left"]
+        );
         
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - 1,
             {$this->left()} = {$this->left()} - 1 WHERE {$this->left()} BETWEEN ? AND ?"
-        , $Info['Left'], $Info['Right']);
+        , [$info[0]['Left'], $info[0]['Right']]);
             
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - 2
             WHERE {$this->right()} > ?"
-        , $Info['Right']);
+        , [$info[0]['Right']]);
             
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} - 2
             WHERE {$this->left()} > ?"
-        , $Info['Right']);
+        , [$info[0]['Right']]);
         
         $this->unlock();
         
@@ -183,36 +159,28 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function deleteSubtreeConditional($ConditionString, $Rest = null)
+    public function deleteSubtreeConditional($conditionString, $arguments = [])
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
         $this->lock();
         
-    	$Arguments=func_get_args();
-        
-        array_shift($Arguments);
-        
-        $Query=
+        $info = $databaseManager->request(
             "SELECT {$this->left()} AS `Left`,{$this->right()} AS `Right` ,{$this->right()}-{$this->left()}+ 1 AS Width
-            FROM {$this->table()} WHERE $ConditionString"
-        ;
-
-        array_unshift($Arguments,$Query);
-        
-        $Info = call_user_func_array([$databaseManager, 'request'], $Arguments)[0];
+            FROM {$this->table()} WHERE $conditionString"
+        , $arguments)[0];
 
         $count = $databaseManager->request(
             "DELETE FROM {$this->table()} WHERE {$this->left()} BETWEEN ? AND ?"
-        , $Info['Left'], $Info['Right']);
+        , [$info['Left'], $info['Right']]);
 
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} - ? WHERE {$this->right()} > ?"
-        , $Info['Width'], $Info['Right']);
+        , [$info['Width'], $info['Right']]);
             
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} - ? WHERE {$this->left()} > ?" 
-        , $Info['Width'], $Info['Right']);
+        , [$info['Width'], $info['Right']]);
             
         $this->unlock();
         
@@ -222,20 +190,15 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function descendantsConditional($AbsoluteDepths = false, $ConditionString, $Rest = null)
+    public function descendantsConditional($isAbsoluteDepth = false, $conditionString, $arguments = [])
     {
-        if ($AbsoluteDepths === false)
+        if ($isAbsoluteDepth === false)
         {
-            $DepthConcat = " - (sub_tree.innerDepth )";
+            $depthConcat = " - (sub_tree.innerDepth )";
         }
-            
-        $Arguments = func_get_args();
         
-        array_shift($Arguments);
-        array_shift($Arguments); //second argument, $AbsoluteDepths
-        
-        $Query=
-            "SELECT node.*, (COUNT(parent.{$this->id()})-1$DepthConcat) AS Depth
+        return Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT node.*, (COUNT(parent.{$this->id()})-1$depthConcat) AS Depth
             FROM {$this->table()} AS node,
             	{$this->table()} AS parent,
             	{$this->table()} AS sub_parent,
@@ -244,7 +207,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
                     FROM {$this->table()} AS node,
                     {$this->table()} AS parent
                     WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-                    AND (node.$ConditionString)
+                    AND (node.$conditionString)
                     GROUP BY node.{$this->id()}
                     ORDER BY node.{$this->left()}
             	) AS sub_tree
@@ -254,23 +217,15 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
             GROUP BY node.{$this->id()}
             HAVING Depth > 0
             ORDER BY node.{$this->left()}"
-        ;
-
-        array_unshift($Arguments, $Query);
-        
-        return call_user_func_array([Rbac::getInstance()->getDatabaseManager(), 'request'], $Arguments);
+        , $arguments);
     }
     
     /**
      * {@inheritdoc}
      */
-    public function childrenConditional($ConditionString, $Rest = null)
+    public function childrenConditional($conditionString, $arguments = [])
     {
-        $Arguments=func_get_args();
-        
-        array_shift($Arguments);
-        
-        $Query=
+        return Rbac::getInstance()->getDatabaseManager()->request(
             "SELECT node.*, (COUNT(parent.{$this->id()})-1 - (sub_tree.innerDepth )) AS Depth
             FROM {$this->table()} AS node,
             	{$this->table()} AS parent,
@@ -280,7 +235,7 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
                     FROM {$this->table()} AS node,
                     {$this->table()} AS parent
                     WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-                    AND (node.$ConditionString)
+                    AND (node.$conditionString)
                     GROUP BY node.{$this->id()}
                     ORDER BY node.{$this->left()}
             ) AS sub_tree
@@ -290,71 +245,41 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
             GROUP BY node.{$this->id()}
             HAVING Depth = 1
             ORDER BY node.{$this->left()}"
-        ;
-
-        array_unshift($Arguments,$Query);
-        
-        $Res = call_user_func_array([Rbac::getInstance()->getDatabaseManager(), 'request'], $Arguments);
-        
-        if($Res !== false)
-        {
-            foreach ($Res as &$v)
-            {
-                unset($v['Depth']);
-            }
-        }
-        return $Res;
+        , $arguments);
     }
     
     /**
      * {@inheritdoc}
      */
-    public function pathConditional($ConditionString, $Rest = null)
+    public function pathConditional($conditionString, $arguments = [])
     {
-        $Arguments=func_get_args();
-        
-        array_shift($Arguments);
-        
-        $Query=
+        return Rbac::getInstance()->getDatabaseManager()->request(
             "SELECT parent.*
             FROM {$this->table()} AS node,
             {$this->table()} AS parent
             WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-            AND ( node.$ConditionString )
+            AND ( node.$conditionString )
             ORDER BY parent.{$this->left()}"
-        ;
-
-        array_unshift($Arguments,$Query);
-        
-        return call_user_func_array([Rbac::getInstance()->getDatabaseManager(), 'request'], $Arguments);
+        , $arguments);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function leavesConditional($ConditionString = null, $Rest = null)
+    public function leavesConditional($conditionString = '', $arguments = [])
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
-        if($ConditionString !== null)
+        if(!empty($conditionString))
         {
-            $Arguments = func_get_args();
-            
-            array_shift($Arguments);
-
-            $Query="SELECT *
-                FROM {$this->table()}
+            return $databaseManager->request(
+                "SELECT * FROM {$this->table()}
                 WHERE {$this->right()} = {$this->left()} + 1
             	AND {$this->left()} BETWEEN
-                (SELECT {$this->left()} FROM {$this->table()} WHERE $ConditionString)
-                	AND
-                (SELECT {$this->right()} FROM {$this->table()} WHERE $ConditionString)";
-
-            $Arguments = array_merge($Arguments, $Arguments);
-            
-            array_unshift($Arguments, $Query);
-            
-            return call_user_func_array([$databaseManager, 'request'], $Arguments);
+                (SELECT {$this->left()} FROM {$this->table()} WHERE $conditionString)
+                    AND
+                (SELECT {$this->right()} FROM {$this->table()} WHERE $conditionString)"
+            , $arguments);
         }
         return $databaseManager->request(
             "SELECT * FROM {$this->table()} WHERE {$this->right()} = {$this->left()} + 1"
@@ -364,64 +289,52 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function insertSiblingData($FieldValueArray = [], $ConditionString = null, $Rest = null)
+    public function insertSiblingData($fieldValues = [], $conditionString = '', $arguments = [])
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
         $this->lock();
-    	//Find the Sibling
-        $Arguments = func_get_args();
         
-        array_shift($Arguments); //first argument, the array
-        array_shift($Arguments);
-        
-        if ($ConditionString !== null)
+        if(!empty($conditionString))
         {
-            $ConditionString = "WHERE $ConditionString";
+            $conditionString = "WHERE $conditionString";
         }
         
-        $Query = "SELECT {$this->right()} AS `Right` FROM {$this->table()} $ConditionString";
+        $sibling = $databaseManager->request(
+            "SELECT {$this->right()} AS `Right` FROM {$this->table()} $conditionString"
+        , $arguments)[0];
 
-        array_unshift($Arguments, $Query);
-        
-        $Sibl = call_user_func_array([$databaseManager, 'request'], $Arguments)[0];
-
-        if($Sibl === null)
+        if($sibling === null)
         {
-            $Sibl['Left'] = $Sibl['Right'] = 0;
+            $sibling['Left'] = $sibling['Right'] = 0;
         }
         
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 WHERE {$this->right()} > ?"
-        ,$Sibl['Right']);
+        , [$sibling['Right']]);
             
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?"
-        ,$Sibl['Right']);
+        , [$sibling['Right']]);
 
-        $FieldsString = $ValuesString = '';
+        $fields = $values = '';
         
-        $Values = [];
+        $data = [];
         
-        if($FieldValueArray)
+        foreach($fieldValues as $k => $v)
         {
-            foreach($FieldValueArray as $k => $v)
-            {
-                $FieldsString .= ", `$k`";
-                $ValuesString .= ', ?';
-                $Values[] = $v;
-            }
+            $fields .= ", `$k`";
+            $values .= ', ?';
+            $data[] = $v;
         }
-        $Query = 
-            "INSERT INTO {$this->table()} ({$this->left()},{$this->right()} $FieldsString)
-            VALUES(?,? $ValuesString)"
-        ;
         
-        array_unshift($Values, $Sibl['Right'] + 2);
-        array_unshift($Values, $Sibl['Right'] + 1);
-        array_unshift($Values, $Query);
+        array_unshift($data, $sibling['Right'] + 2);
+        array_unshift($data, $sibling['Right'] + 1);
 
-        $Res = call_user_func_array([$databaseManager, 'request'], $Values);
+        $Res = $databaseManager->request(
+            "INSERT INTO {$this->table()} ({$this->left()},{$this->right()} $fields)
+            VALUES(?,? $values)"
+        , $data);
         
         $this->unlock();
         
@@ -431,64 +344,51 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function insertChildData($FieldValueArray=array(),$ConditionString=null,$Rest=null)
+    public function insertChildData($fieldValues = [], $conditionString = '', $arguments = [])
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
         $this->lock();
-    	//Find the Sibling
-        $Arguments=func_get_args();
         
-        array_shift($Arguments); //first argument, the array
-        array_shift($Arguments);
-        
-        if($ConditionString !== null)
+        if(!empty($conditionString))
         {
-            $ConditionString = "WHERE $ConditionString";
+            $conditionString = "WHERE $conditionString";
         }
         
-        $Query="SELECT {$this->right()} AS `Right`, {$this->left()} AS `Left` FROM {$this->table()} $ConditionString";
-        
-        array_unshift($Arguments,$Query);
-        
-        $Parent = call_user_func_array([$databaseManager, 'request'], $Arguments)[0];
-        
-        if ($Parent==null)
+        $parent = $databaseManager->request(
+            "SELECT {$this->right()} AS `Right`, {$this->left()} AS `Left` FROM {$this->table()} $conditionString"
+        , $arguments)[0];
+            
+        if ($parent==null)
         {
-            $Parent['Left'] = $Parent['Right'] = 0;
+            $parent['Left'] = $parent['Right'] = 0;
         }
         
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 WHERE {$this->right()} >= ?"
-        , $Parent['Right']);
+        , $parent['Right']);
             
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?"
-        , $Parent['Right']);
+        , $parent['Right']);
 
-        $FieldsString=$ValuesString = '';
-        $Values = [];
+        $fields = $values = '';
+        $data = [];
         
-        if($FieldValueArray)
+        foreach($fieldValues as $k => $v)
         {
-            foreach($FieldValueArray as $k => $v)
-            {
-                $FieldsString .= ", `$k`";
-                $ValuesString .= ', ?';
-                $Values[] = $v;
-            }
+            $fields .= ", `$k`";
+            $values .= ', ?';
+            $data[] = $v;
         }
+        array_unshift($data, $parent['Right'] + 1);
+        array_unshift($data, $parent['Right']);
+        
+        $Res = $databaseManager->request(
+            "INSERT INTO {$this->table()} ({$this->left()},{$this->right()} $fields) " .
+            "VALUES(?, ? $values)"
+        , $data);
             
-        $Query=
-            "INSERT INTO {$this->table()} ({$this->left()},{$this->right()} $FieldsString) " .
-            "VALUES(?, ? $ValuesString)";
-        
-        array_unshift($Values, $Parent['Right'] + 1);
-        array_unshift($Values, $Parent['Right']);
-        array_unshift($Values, $Query);
-        
-        $Res = call_user_func_array([$databaseManager, 'request'], $Values);
-        
         $this->unlock();
         
         return $Res;
@@ -497,41 +397,30 @@ class FullNestedSet extends BaseNestedSet implements ExtendedNestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function editData($FieldValueArray = array(), $ConditionString = null, $Rest = null)
+    public function editData($fieldValues = [], $conditionString = '', $arguments = [])
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
-        //Find the Sibling
-        $Arguments = func_get_args();
         
-        array_shift($Arguments); //first argument, the array
-        array_shift($Arguments);
-        
-        if($ConditionString !== null)
+        if(!empty($conditionString))
         {
-            $ConditionString = "WHERE $ConditionString";
+            $conditionString = "WHERE $conditionString";
         }
 
-        $FieldsString = '';
-        $Values = [];
+        $fields = '';
+        $values = [];
         
-        if ($FieldValueArray)
+        foreach($fieldValues as $k=>$v)
         {
-            foreach($FieldValueArray as $k=>$v)
+            if (!empty($fields))
             {
-                if (!empty($FieldsString))
-                {
-                    $FieldsString .= ',';
-                }
-                $FieldsString .= "`$k`=?";
-                $Values[] = $v;
+                $fields .= ',';
             }
-        } 
-        $Query = "UPDATE {$this->table()} SET $FieldsString $ConditionString";
+            $fields .= "`$k`=?";
+            $values[] = $v;
+        }
 
-        array_unshift($Values,$Query);
-        
-        $Arguments = array_merge($Values, $Arguments);
-
-        return call_user_func_array([$databaseManager, 'request'], $Arguments);
+        return $databaseManager->request(
+            "UPDATE {$this->table()} SET $fields $conditionString"
+        , array_merge($values, $arguments));
     }
 }

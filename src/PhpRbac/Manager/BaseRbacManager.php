@@ -34,13 +34,13 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
         return $this->nestedSet->insertChildData([
             'Title' => $title,
             'Description' => $description
-        ], 'ID=?', $parentId);
+        ], 'ID=?', [$parentId]);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function addPath($path, array $descriptions = null)
+    public function addPath($path, array $descriptions = [])
     {
         if ($path[0] !== '/')
         {
@@ -158,7 +158,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
             AND  node.Title=?
             GROUP BY node.ID
             HAVING Path = ?"
-        , $Parts[count($Parts) - 1], $path);
+        , [$Parts[count($Parts) - 1], $path]);
 
         if($res !== false)
         {
@@ -205,19 +205,9 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     /**
      * {@inheritdoc}
      */
-    public function getRecord($id)
-    {
-        return call_user_func_array(
-            [$this->nestedSet, 'getRecord']
-        , func_get_args ());
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function getTitle($id)
     {
-        if(($r = $this->getRecord('ID=?', $id)) !== null)
+        if(($r = $this->nestedSet->getRecord($id)) !== null)
         {
             return $r['Title'];
         }
@@ -229,7 +219,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
      */
     public function getPath($id)
     {
-        $res = $this->nestedSet->pathConditional('ID=?', $id);
+        $res = $this->nestedSet->pathConditional('ID=?', [$id]);
         $out = null;
         if(is_array($res))
         {
@@ -255,7 +245,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
      */
     public function getDescription($id)
     {
-        if(($r = $this->getRecord("ID=?", $id)) !== null)
+        if(($r = $this->nestedSet->getRecord($id)) !== null)
         {
             return $r['Description'];
         }
@@ -278,7 +268,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
         {
             $Data['Description'] = $newDescription;
         }           
-        return $this->nestedSet->editData($Data, 'ID=?', $id) == 1;
+        return $this->nestedSet->editData($Data, 'ID=?', [$id]) == 1;
     }
 
     /**
@@ -286,7 +276,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
      */
     public function children($id)
     {
-        return $this->nestedSet->childrenConditional('ID=?', $id);
+        return $this->nestedSet->childrenConditional('ID=?', [$id]);
     }
 
     /**
@@ -294,7 +284,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
      */
     public function descendants($id)
     {
-        $res = $this->nestedSet->descendantsConditional(false, 'ID=?', $id);
+        $res = $this->nestedSet->descendantsConditional(false, 'ID=?', [$id]);
         $out = [];
         if(is_array($res))
         {
@@ -311,7 +301,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
      */
     public function depth($id)
     {
-        return $this->nestedSet->depthConditional('ID=?', $id);
+        return $this->nestedSet->depthConditional('ID=?', [$id]);
     }
 
     /**
@@ -319,7 +309,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
      */
     public function parentNode($id)
     {
-        return $this->nestedSet->parentNodeConditional('ID=?', $id);
+        return $this->nestedSet->parentNodeConditional('ID=?', [$id]);
     }
 
     /**
@@ -345,19 +335,15 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
         }    
         elseif($databaseManager->isSQLite())
         {
-            $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}{$this->type}");
+            $databaseManager->request("delete from sqlite_sequence where name={$tablePrefix}{$this->type}");
         }
         else
         {
             throw new \Exception("Rbac can not reset table on this type of database: {$Adapter}");
         }     
         $databaseManager->request(
-            "INSERT INTO {$tablePrefix}{$this->type} (Title,Description,Lft,Rght) VALUES (?,?,?,?)",
-            "root",
-            "root",
-            0,
-            1
-        );
+            "INSERT INTO {$tablePrefix}{$this->type} (Title,Description,Lft,Rght) VALUES (?,?,?,?)"
+        , ["root", "root", 0, 1]);
         return (int) $res;
     }
     
@@ -368,9 +354,9 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
     {
         if($recursive === true)
         {
-            return $this->nestedSet->deleteSubtreeConditional('ID=?', $id);
+            return $this->nestedSet->deleteSubtreeConditional('ID=?', [$id]);
         }
-        return $this->nestedSet->deleteConditional('ID=?', $id);
+        return $this->nestedSet->deleteConditional('ID=?', [$id]);
     }
 
     /**
@@ -382,15 +368,16 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
         
         $manager = $rbac->getRbacManager();
         $databaseManager = $rbac->getDatabaseManager();
-        
-        $roleId = $manager->getRoleManager()->getId($role);
-        $permissionId = $manager->getPermissionManager()->getId($permission);
 
-        return $databaseManager->request(
+        return $rbac->getDatabaseManager()->request(
             'INSERT INTO ' . $databaseManager->getTablePrefix() . 'rolepermissions
             (RoleID,PermissionID,AssignmentDate)
-            VALUES (?,?,?)', $roleId, $permissionId, time()
-        ) >= 1;
+            VALUES (?,?,?)'
+        , [
+            $manager->getRoleManager()->getId($role),
+            $manager->getPermissionManager()->getId($permission),
+            time()
+        ]) >= 1;
     }
 
     /**
@@ -403,13 +390,13 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
         $manager = $rbac->getRbacManager();
         $databaseManager = $rbac->getDatabaseManager();
         
-        $roleId = $manager->getRoleManager()->getId($role);
-        $permissionId = $manager->getPermissionManager()->getId($permission);
-        
         return $databaseManager->request(
             'DELETE FROM ' . $databaseManager->getTablePrefix() . 'rolepermissions WHERE
             RoleID=? AND PermissionID=?'
-        , $roleId, $permissionId) == 1;
+        , [
+            $manager->getRoleManager()->getId($role),
+            $manager->getPermissionManager()->getId($permission)
+        ]) == 1;
     }
 
     /**
@@ -434,7 +421,7 @@ abstract class BaseRbacManager implements BaseRbacManagerInterface
         }
         elseif($databaseManager->isSQLite())
         {
-            $databaseManager->request("delete from sqlite_sequence where name=? ", "{$tablePrefix}_rolepermissions");
+            $databaseManager->request("delete from sqlite_sequence where name={$tablePrefix}_rolepermissions");
         }
         else
         {

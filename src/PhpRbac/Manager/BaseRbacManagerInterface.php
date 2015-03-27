@@ -75,13 +75,6 @@ interface BaseRbacManagerInterface
     public function titleId($title);
     
     /**
-     * Return the whole record of a single entry (including Rght and Lft fields)
-     *
-     * @param integer $id
-     */
-    public function getRecord($id);
-    
-    /**
      * Returns title of entity
      *
      * @param integer $id

@@ -39,45 +39,44 @@ class PermissionManager extends BaseRbacManager
     /**
      * Unassignes all roles of this permission, and returns their number
      *
-     * @param integer $ID
-     *      Permission Id
+     * @param integer $permissionId
      * @return integer
      */
-    function unassignRoles($ID)
+    function unassignRoles($permissionId)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
 
         return $databaseManager->request(
             'DELETE FROM ' . $databaseManager->getTablePrefix() .
             'rolepermissions WHERE PermissionID=?'
-        , $ID);
+        , [$permissionId]);
     }
 
     /**
      * Returns all roles assigned to a permission
-     *
-     * @param mixed $Permission
-     *        	Id, Title, Path
-     * @param boolean $OnlyIDs
-     *        	if true, result will be a 1D array of IDs
-     * @return Array 2D or 1D or null
+     * $permission can be Id, Title, Path
+     * if $onlyIds is true, result will be a 1D array of IDs
+     * 
+     * @param mixed $permission
+     * @param boolean $onlyIds
+     * @return array
      */
-    function roles($Permission, $OnlyIDs = true)
+    function roles($permission, $onlyIds = true)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
 
-        if (!is_numeric($Permission))
+        if (!is_numeric($permission))
         {
-            $Permission = $this->returnId($Permission);
+            $permission = $this->returnId($permission);
         }
 
-        if ($OnlyIDs)
+        if ($onlyIds)
         {
             $Res = $databaseManager->request(
                 "SELECT RoleID AS `ID` FROM {$tablePrefix}rolepermissions "
                 . "WHERE PermissionID=? ORDER BY RoleID"
-            , $Permission );
+            , [$permission]);
 
             if(is_array($Res))
             {
@@ -94,6 +93,6 @@ class PermissionManager extends BaseRbacManager
             "SELECT `TP`.ID, `TP`.Title, `TP`.Description FROM {$tablePrefix}roles AS `TP`
             LEFT JOIN {$tablePrefix}rolepermissions AS `TR` ON (`TR`.RoleID=`TP`.ID)
             WHERE PermissionID=? ORDER BY TP.ID"
-        , $Permission);
+        , [$permission]);
     }
 }

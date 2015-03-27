@@ -38,56 +38,52 @@ class RoleManager extends BaseRbacManager
     }
 
     /**
-     * Unassigns all permissions belonging to a role
+     * Unassigns all permissions belonging to the role related to $id
+     * It returns the number of assignments deleted
      *
-     * @param integer $ID
-     *        	role ID
-     * @return integer number of assignments deleted
+     * @param integer $id
+     * @return integer
      */
-    function unassignPermissions($ID)
+    function unassignPermissions($id)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
         return $databaseManager->request(
             'DELETE FROM ' . $databaseManager->getTablePrefix() . 'rolepermissions
             WHERE RoleID=?'
-        , $ID);
+        , [$id]);
     }
 
     /**
-     * Unassign all users that have a certain role
+     * Unassign all users that have the role related to $id
      *
-     * @param integer $ID
-     *        	role ID
+     * @param integer $id
      * @return integer number of deleted assignments
      */
-    function unassignUsers($ID)
+    function unassignUsers($id)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
         return $databaseManager->request(
-            'DELETE FROM ' . $databaseManager->getTablePrefix()
-            . 'userroles WHERE RoleID=?'
-        , $ID);
+            'DELETE FROM ' . $databaseManager->getTablePrefix() . 'userroles WHERE RoleID=?'
+        , [$id]);
     }
 
     /**
      * Checks to see if a role has a permission or not
      *
-     * @param integer $Role
-     *        	ID
-     * @param integer $Permission
-     *        	ID
+     * @param integer $roleId
+     * @param integer $permissionId
      * @return boolean
      *
      * @todo: If we pass a Role that doesn't exist the method just returns false. We may want to check for a valid Role.
      */
-    function hasPermission($Role, $Permission)
+    function hasPermission($roleId, $permissionId)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        $Res = $databaseManager->request(
+        return $databaseManager->request(
             "SELECT COUNT(*) AS Result
             FROM {$tablePrefix}rolepermissions AS TRel
             JOIN {$tablePrefix}permissions AS TP ON ( TP.ID= TRel.PermissionID)
@@ -109,48 +105,49 @@ class RoleManager extends BaseRbacManager
             the above section returns all the parents of (the path to) our permission, so if one of our role or its descendants
             has an assignment to any of them, we're good.
             */"
-        , $Role, $Role, $Permission);
-        return $Res [0] ['Result'] >= 1;
+        , [$roleId, $roleId, $permissionId])[0]['Result'] >= 1;
     }
 
     /**
      * Returns all permissions assigned to a role
+     * If $onlyIds is set to true, result would be a 1D array of IDs
+     * This method returns the two dimensional array would have ID,Title and Description of permissions
+     * Or 1D array or null
      *
-     * @param integer $Role
-     *        	ID
-     * @param boolean $OnlyIDs
-     *        	if true, result would be a 1D array of IDs
-     * @return Array 2D or 1D or null
-     *         the two dimensional array would have ID,Title and Description of permissions
+     * @param integer $roleId
+     * @param boolean $onlyIds
+     * @return mixed
      */
-    function permissions($Role, $OnlyIDs = true)
+    function permissions($roleId, $onlyIds = true)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        if (!is_numeric($Role))
+        if (!is_numeric($roleId))
         {
-            $Role = $this->returnId($Role);
+            $roleId = $this->returnId($roleId);
         }
 
-        if ($OnlyIDs)
+        if ($onlyIds)
         {
-            $Res = $databaseManager->request("SELECT PermissionID AS `ID` FROM {$tablePrefix}rolepermissions WHERE RoleID=? ORDER BY PermissionID", $Role);
-            if (is_array($Res))
+            $Res = $databaseManager->request(
+                "SELECT PermissionID AS `ID` FROM {$tablePrefix}rolepermissions WHERE RoleID=? ORDER BY PermissionID"
+            , [$roleId]);
+            if (!is_array($Res))
             {
-                $out = [];
-                foreach ($Res as $R)
-                {
-                    $out [] = $R ['ID'];
-                }
-                return $out;
+                return null;
             }
-            return null;
+            $out = [];
+            foreach ($Res as $R)
+            {
+                $out [] = $R ['ID'];
+            }
+            return $out;
         }
         return $databaseManager->request(
             "SELECT `TP`.ID, `TP`.Title, `TP`.Description FROM {$tablePrefix}permissions AS `TP`
             LEFT JOIN {$tablePrefix}rolepermissions AS `TR` ON (`TR`.PermissionID=`TP`.ID)
-            WHERE RoleID=? ORDER BY TP.ID", $Role
-        );
+            WHERE RoleID=? ORDER BY TP.ID"
+        , [$roleId]);
     }
 }

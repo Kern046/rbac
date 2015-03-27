@@ -69,16 +69,15 @@ class RbacManager
     /**
      * Assign a role to a permission.
      * Alias for what's in the base class
+     * $permission and $role can be Id, Title or Path
      *
-     * @param string|integer $Role
-     *        	Id, Title or Path
-     * @param string|integer $Permission
-     *        	Id, Title or Path
+     * @param string|integer $role
+     * @param string|integer $permission
      * @return boolean
      */
-    function assign($Role, $Permission)
+    function assign($role, $permission)
     {
-        return $this->roleManager->assign($Role, $Permission);
+        return $this->roleManager->assign($role, $permission);
     }
 
     /**
@@ -90,35 +89,34 @@ class RbacManager
 
     /**
      * Checks whether a user has a permission or not.
+     * you can provide a path like /some/permission, a title, or the
+     * permission ID.
+     * in case of ID, don't forget to provide integer (not a string
+     * containing a number)
      *
-     * @param string|integer $Permission
-     *        	you can provide a path like /some/permission, a title, or the
-     *        	permission ID.
-     *        	in case of ID, don't forget to provide integer (not a string
-     *        	containing a number)
-     * @param string|integer $UserID
-     *        	User ID of a user
+     * @param string|integer $permission
+     * @param string|integer $userId
      *
      * @throws RbacPermissionNotFoundException
      * @throws RbacUserNotProvidedException
      * @return boolean
      */
-    function check($Permission, $UserID = null)
+    function check($permission, $userId = null)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        if ($UserID === null)
+        if ($userId === null)
         {
             throw new RbacUserNotProvidedException('$UserID is a required argument.');
         }
             
-        $PermissionID = $this->permissionManager->getId($Permission);
+        $PermissionID = $this->permissionManager->getId($permission);
 
         // if invalid, throw exception
         if ($PermissionID === null)
         {
-            throw new RbacPermissionNotFoundException("The permission '{$Permission}' not found.");
+            throw new RbacPermissionNotFoundException("The permission '{$permission}' not found.");
         }
             
         $LastPart =
@@ -138,29 +136,27 @@ class RbacManager
             JOIN {$tablePrefix}permissions AS TP ON ( TPdirect.Lft BETWEEN TP.Lft AND TP.Rght)
             JOIN {$tablePrefix}rolepermissions AS TRel ON (TP.ID=TRel.PermissionID)
             ) $LastPart"
-        , $UserID, $PermissionID);
+        , [$userId, $PermissionID]);
 
         return $Res[0]['Result'] >= 1;
     }
 
     /**
     * Enforce a permission on a user
+    * $permission can be a path or title or ID of permission
     *
-    * @param string|integer $Permission
-    *        	path or title or ID of permission
-    *
-    * @param integer $UserID
-    *
+    * @param string|integer $permission
+    * @param integer $userId
     * @throws RbacUserNotProvidedException
     */
-    function enforce($Permission, $UserID = null)
+    function enforce($permission, $userId = null)
     {
-	if($UserID === null)
+	if($userId === null)
         {
             throw new RbacUserNotProvidedException('$UserID is a required argument.');
         }
             
-        if(!$this->check($Permission, $UserID))
+        if(!$this->check($permission, $userId))
         {
             header('HTTP/1.1 403 Forbidden');
             die('<strong>Forbidden</strong>: You do not have permission to access this resource.');
@@ -171,23 +167,22 @@ class RbacManager
     /**
     * Remove all roles, permissions and assignments
     * mostly used for testing
+    * $ensure must be set to true or throws error
     *
-    * @param boolean $Ensure
-	*        	must set or throws error
-	* @return boolean
+    * @param boolean $ensure
+    * @return boolean
     */
-    function reset($Ensure = false)
+    function reset($ensure = false)
     {
-        if ($Ensure !== true)
+        if ($ensure !== true)
         {
             throw new \Exception ("You must pass true to this function, otherwise it won't work.");
-            return;
         }
-        $res = true;
-        $res = $res and $this->roleManager->resetAssignments(true);
-        $res = $res and $this->roleManager->reset(true);
-        $res = $res and $this->permissionManager->reset(true);
-        $res = $res and $this->userManager->resetAssignments(true);
-        return $res;
+        return
+            $this->roleManager->resetAssignments(true) &&
+            $this->roleManager->reset(true) &&
+            $this->permissionManager->reset(true) &&
+            $this->userManager->resetAssignments(true)
+        ;
     }
 }

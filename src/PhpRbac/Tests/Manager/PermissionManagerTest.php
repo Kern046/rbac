@@ -29,19 +29,21 @@ class PermissionManagerTest extends RbacTestCase
     
     public function testAdd()
     {
-        $this->manager->add('read-article', 'Lire un article');
+        $id = $this->manager->add('read-article', 'Lire un article');
         
         $nbPermissions = $this->manager->count();
         
+        $this->assertEquals(2, $id);
         $this->assertEquals(2, $nbPermissions);
     }
     
     public function testAddPath()
     {
-        $this->manager->addPath('/connect-admin');
+        $nodes = $this->manager->addPath('/connect-admin');
         
         $permissions = $this->manager->children(1);
         
+        $this->assertEquals(1, $nodes);
         $this->assertCount(1, $permissions);
         $this->assertEquals('connect-admin', $permissions[0]['Title']);
     }
