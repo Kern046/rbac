@@ -36,7 +36,7 @@ class JfTest extends RbacTestCase
     
     public function testPdoPrepare()
     {
-        $query = self::$databaseManager->request('SELECT table_name, ?, engine FROM information_schema.tables LIMIT 3', 'table_type');
+        $query = self::$databaseManager->request('SELECT table_name, ?, engine FROM information_schema.tables LIMIT 3', ['table_type']);
         
         $this->assertInternalType('array', $query);
         $this->assertCount(3, $query);
@@ -64,7 +64,7 @@ class JfTest extends RbacTestCase
 
         $rbac = Rbac::getInstance();
         $rbac->init($DBConnection, 'kilix_rbac_');
-        $query = $rbac->getDatabaseManager()->request('SELECT table_name, ?, engine FROM information_schema.tables LIMIT 3', 'table_type');
+        $query = $rbac->getDatabaseManager()->request('SELECT table_name, ?, engine FROM information_schema.tables LIMIT 3', ['table_type']);
         
         $this->assertInternalType('array', $query);
         $this->assertCount(3, $query);

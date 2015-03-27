@@ -80,21 +80,20 @@ class DatabaseManager
      *
      * @todo currently sqlite always returns sequence number for lastInsertId, so there's no way of knowing if insert worked instead of execute result. all instances of ==1 replaced with >=1 to check for insert
      *
-     * @param string $Query
+     * @param string $query
+     * @param array $arguments
      * @throws Exception
      * @return array|integer|null
      */
-    public function request($Query)
+    public function request($query, $arguments = [])
     {
-        $args = func_get_args ();
-        
         if ($this->connection instanceof \PDO)
         {
-            return $this->pdoRequest($Query, $args);
+            return $this->pdoRequest($query, $arguments);
         }
         elseif($this->connection instanceof \mysqli)
         {
-            return $this->mysqliRequest($Query, $args);
+            return $this->mysqliRequest($query, $arguments);
         }
         throw new \Exception('Unknown database interface type.');
     }
@@ -102,30 +101,29 @@ class DatabaseManager
     /**
      * Execute a SQL query with a PDO connection
      * 
-     * @param string $Query
-     * @param array $args
+     * @param string $query
+     * @param array $arguments
      * @return boolean
      */
-    public function pdoRequest($Query, $args)
+    public function pdoRequest($query, $arguments = [])
     {
         $this->checkGroupConcatLimit();
 
-        if(!$stmt = $this->connection->prepare($Query))
+        if(!$stmt = $this->connection->prepare($query))
         {
             return false;
         }
-        if(count($args) > 1)
+        
+        $nbArguments = count($arguments);
+        
+        for($i = 0; $i < $nbArguments; ++$i)
         {
-            array_shift($args); // remove $Query from args
-            $i = 0;
-            foreach($args as &$v)
-            {
-                $stmt->bindValue(++$i, $v);
-            }
+            $stmt->bindValue($i + 1, $arguments[$i]);
         }
+            
         $success = $stmt->execute();
 
-        $type = substr(trim(strtoupper($Query)), 0, 6);
+        $type = substr(trim(strtoupper($query)), 0, 6);
         
         if ($type === 'INSERT')
         {
@@ -158,18 +156,18 @@ class DatabaseManager
     /**
      * Execute a SQL query with a mysqli connection
      * 
-     * @param string $Query
-     * @param array $args
+     * @param string $query
+     * @param array $arguments
      * @return boolean
      */
-    public function mysqliRequest($Query, $args)
+    public function mysqliRequest($query, $arguments = [])
     {
         $this->checkGroupConcatLimit();
+        $nbArguments = count($arguments);
         
-        if(count($args) === 1)
+        if($nbArguments === 0)
         {
-            $result = $this->connection->query ( $Query );
-            if ($result === true)
+            if (($result = $this->connection->query($query)) === true)
             {
                 return true;
             }
@@ -185,28 +183,25 @@ class DatabaseManager
             return null;
         }
         
-        if(($preparedStatement = $this->connection->prepare($Query)) === false)
+        if(($preparedStatement = $this->connection->prepare($query)) === false)
         {
-            trigger_error("Unable to prepare statement: {$Query}, reason: ".$this->connection->error);
+            trigger_error("Unable to prepare statement: {$query}, reason: ".$this->connection->error);
         }
-                
-        array_shift($args); // remove $Query from args
         
         $a = [];
-        foreach ( $args as $k => &$v )
+        
+        foreach($arguments as $k => &$v)
         {
             $a[$k] = &$v;
         }
-                
-        $types = str_repeat('s', count($args)); // all params are
-                                                // strings, works well on
-                                                // MySQL
-                                                // and SQLite
-        array_unshift($a, $types);
-        call_user_func_array ([$preparedStatement, 'bind_param'], $a);
+        
+        array_unshift($a, str_repeat('s', $nbArguments));
+        
+        call_user_func_array([$preparedStatement, 'bind_param'], $a);
         $preparedStatement->execute ();
 
-        $type = substr(trim(strtoupper($Query)), 0, 6);
+        $type = substr(trim(strtoupper($query)), 0, 6);
+        
         if ($type == 'INSERT')
         {
             $res = $this->connection->insert_id;
@@ -234,11 +229,11 @@ class DatabaseManager
             {
                 $fields [] = &$out [$field->name];
             }
-                    
             call_user_func_array([$preparedStatement, 'bind_result'], $fields);
+            
             $output = [];
             $count = 0;
-            while($preparedStatement->fetch ())
+            while($preparedStatement->fetch())
             {
                 foreach($out as $k => $v)
                 {
