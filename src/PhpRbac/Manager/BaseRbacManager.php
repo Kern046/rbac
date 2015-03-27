@@ -1,8 +1,6 @@
 <?php
 namespace PhpRbac\Manager;
 
-use PhpRbac\Database\JModel;
-
 use PhpRbac\Rbac;
 
 use PhpRbac\NestedSet\FullNestedSet;
@@ -15,91 +13,67 @@ use PhpRbac\NestedSet\FullNestedSet;
  * @author abiusx
  * @version 1.0
  */
-abstract class BaseRbacManager extends JModel
+abstract class BaseRbacManager implements BaseRbacManagerInterface
 {
     /** @var FullNestedSet */
     protected $nestedSet;
     /** @var string **/
     protected $type;
-    
-    public function rootId()
-    {
-        return 1;
-    }
+    /** @var integer **/
+    protected $rootId = 1;
     
     /**
-     * Adds a new role or permission
-     * Returns new entry's ID
-     *
-     * @param string $Title
-     * @param string $Description
-     * @param integer $ParentID
-     * @return integer
+     * {@inheritdoc}
      */
-    public function add($Title, $Description, $ParentID = null)
+    public function add($title, $description, $parentId = null)
     {
-        if ($ParentID === null)
+        if($parentId === null)
         {
-            $ParentID = $this->rootId();
+            $parentId = $this->rootId;
         }
-        return (int) $this->nestedSet->insertChildData([
-            'Title' => $Title,
-            'Description' => $Description
-        ], 'ID=?', $ParentID);
+        return $this->nestedSet->insertChildData([
+            'Title' => $title,
+            'Description' => $description
+        ], 'ID=?', [$parentId]);
     }
 
     /**
-     * Adds a path and all its components.
-     * Will not replace or create siblings if a component exists.
-     * $Path is such as /some/role/some/where - Must begin with a / (slash)
-     * $Descriptions is an array of descriptions (will add with empty description if not available)
-     * Return the number of nodes created (0 if none created)
-     * 
-     * @param string $Path
-     * @param array $Descriptions
-     * @return integer
+     * {@inheritdoc}
      */
-    public function addPath($Path, array $Descriptions = null)
+    public function addPath($path, array $descriptions = [])
     {
-        if ($Path[0] !== '/')
+        if ($path[0] !== '/')
         {
             throw new \Exception ('The path supplied is not valid.');
         }
-        $Path = substr($Path, 1);
-        $Parts = explode('/', $Path);
-        $Parent = 1;
-        $index = 0;
-        $CurrentPath = '';
-        $NodesCreated = 0;
+        $path = substr($path, 1);
+        $parts = explode('/', $path);
+        $nbParts = count($parts);
+        $parent = 1;
+        $currentPath = '';
+        $nodesCreated = 0;
 
-        foreach($Parts as $p)
+        for($i = 0; $i < $nbParts; ++$i)
         {
-            $Description =
-                (isset ($Descriptions[$index]))
-                ? $Descriptions[$index]
+            $description =
+                (isset($descriptions[$i]))
+                ? $descriptions[$i]
                 : ''
             ;
-            $CurrentPath .= "/{$p}";
-            $t = $this->pathId($CurrentPath);
-            if(!$t)
+            $currentPath .= "/{$parts[$i]}";
+            if(!($t = $this->pathId($currentPath)))
             {
-                $IID = $this->add($p, $Description, $Parent);
-                $Parent = $IID;
-                $NodesCreated++;
+                $parent = $this->add($parts[$i], $description, $parent);
+                ++$nodesCreated;
+                continue;
             }
-            else
-            {
-                $Parent = $t;
-            }
-            ++$index;
+            $parent = $t;
         }
-        return (int)$NodesCreated;
+        return $nodesCreated;
     }
 
     /**
-     * Return count of the entity
-     *
-     * @return integer
+     * {@inheritdoc}
      */
     public function count()
     {
@@ -112,30 +86,19 @@ abstract class BaseRbacManager extends JModel
     }
         
     /**
-     * Get ID from a path or a title
-     * 
-     * @param string $item
-     * @return integer
+     * {@inheritdoc}
      */
     public function getId($item)
     {
         return
             (is_numeric($item))
             ? $item
-            : (
-                (substr($item, 0, 1) === '/')
-                ? $this->pathId($item)
-                : $this->titleId($item)
-            ) 
+            : $this->returnId($item)
         ;
     }
     
     /**
-     * Returns ID of entity
-     *
-     * @param string $entity (Path or Title)
-     *
-     * @return mixed ID of entity or null
+     * {@inheritdoc}
      */
     public function returnId($entity = null)
     {
@@ -147,26 +110,21 @@ abstract class BaseRbacManager extends JModel
     }
 
     /**
-     * Returns ID of a path
-     *
-     * @todo this has a limit of 1000 characters on $Path
-     * @param string $Path
-     *        	such as /role1/role2/role3 ( a single slash is root)
-     * @return integer NULL
+     * {@inheritdoc}
      */
-    public function pathId($Path)
+    public function pathId($path)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $databaseConnection = $databaseManager->getConnection();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        $Path = "root{$Path}";
+        $path = "root{$path}";
 
-        if($Path[strlen($Path) - 1] === '/')
+        if($path[strlen($path) - 1] === '/')
         {
-            $Path = substr($Path, 0, strlen($Path) - 1);
+            $path = substr($path, 0, strlen($path) - 1);
         }
-        $Parts = explode('/', $Path);
+        $Parts = explode('/', $path);
         
         $Adapter = get_class($databaseConnection);
         
@@ -200,7 +158,7 @@ abstract class BaseRbacManager extends JModel
             AND  node.Title=?
             GROUP BY node.ID
             HAVING Path = ?"
-        , $Parts[count($Parts) - 1], $Path);
+        , [$Parts[count($Parts) - 1], $path]);
 
         if($res !== false)
         {
@@ -237,37 +195,19 @@ abstract class BaseRbacManager extends JModel
     }
 
     /**
-     * Returns ID belonging to a title, and the first one on that
-     *
-     * @param string $Title
-     * @return integer Id of specified Title
+     * {@inheritdoc}
      */
-    public function titleId($Title)
+    public function titleId($title)
     {
-        return $this->nestedSet->getID('Title=?', $Title);
+        return $this->nestedSet->getID('Title=?', $title);
     }
 
     /**
-     * Return the whole record of a single entry (including Rght and Lft fields)
-     *
-     * @param integer $ID
+     * {@inheritdoc}
      */
-    protected function getRecord($ID)
+    public function getTitle($id)
     {
-        return call_user_func_array(
-            [$this->nestedSet, 'getRecord']
-        , func_get_args ());
-    }
-
-    /**
-     * Returns title of entity
-     *
-     * @param integer $ID
-     * @return string NULL
-     */
-    public function getTitle($ID)
-    {
-        if(($r = $this->getRecord('ID=?', $ID)) !== null)
+        if(($r = $this->nestedSet->getRecord($id)) !== null)
         {
             return $r['Title'];
         }
@@ -275,14 +215,11 @@ abstract class BaseRbacManager extends JModel
     }
 
     /**
-     * Returns path of a node
-     *
-     * @param integer $ID
-     * @return string path
+     * {@inheritdoc}
      */
-    public function getPath($ID)
+    public function getPath($id)
     {
-        $res = $this->nestedSet->pathConditional('ID=?', $ID);
+        $res = $this->nestedSet->pathConditional('ID=?', [$id]);
         $out = null;
         if(is_array($res))
         {
@@ -304,14 +241,11 @@ abstract class BaseRbacManager extends JModel
     }
 
     /**
-     * Return description of entity
-     *
-     * @param integer $ID
-     * @return string NULL
+     * {@inheritdoc}
      */
-    public function getDescription($ID)
+    public function getDescription($id)
     {
-        if(($r = $this->getRecord("ID=?", $ID)) !== null)
+        if(($r = $this->nestedSet->getRecord($id)) !== null)
         {
             return $r['Description'];
         }
@@ -319,51 +253,38 @@ abstract class BaseRbacManager extends JModel
     }
 
     /**
-     * Edits an entity, changing title and/or description. Maintains Id.
-     *
-     * @param integer $ID
-     * @param string $NewTitle
-     * @param string $NewDescription
-     *
+     * {@inheritdoc}
      */
-    public function edit($ID, $NewTitle = null, $NewDescription = null)
+    public function edit($id, $newTitle = null, $newDescription = null)
     {
         $Data = [];
 
-        if($NewTitle !== null)
+        if($newTitle !== null)
         {
-            $Data['Title'] = $NewTitle;
+            $Data['Title'] = $newTitle;
         }
 
-        if($NewDescription !== null)
+        if($newDescription !== null)
         {
-            $Data['Description'] = $NewDescription;
+            $Data['Description'] = $newDescription;
         }           
-        return $this->nestedSet->editData($Data, 'ID=?', $ID) == 1;
+        return $this->nestedSet->editData($Data, 'ID=?', [$id]) == 1;
     }
 
     /**
-     * Returns children of an entity
-     *
-     * @param integer $ID
-     * @return array
-     *
+     * {@inheritdoc}
      */
-    public function children($ID)
+    public function children($id)
     {
-        return $this->nestedSet->childrenConditional('ID=?', $ID);
+        return $this->nestedSet->childrenConditional('ID=?', [$id]);
     }
 
     /**
-     * Returns descendants of a node, with their depths in integer
-     *
-     * @param integer $ID
-     * @return array with keys as titles and Title,ID, Depth and Description
-     *
+     * {@inheritdoc}
      */
-    public function descendants($ID)
+    public function descendants($id)
     {
-        $res = $this->nestedSet->descendantsConditional(false, 'ID=?', $ID);
+        $res = $this->nestedSet->descendantsConditional(false, 'ID=?', [$id]);
         $out = [];
         if(is_array($res))
         {
@@ -376,43 +297,30 @@ abstract class BaseRbacManager extends JModel
     }
 
     /**
-     * Return depth of a node
-     *
-     * @param integer $ID
+     * {@inheritdoc}
      */
-    public function depth($ID)
+    public function depth($id)
     {
-        return $this->nestedSet->depthConditional('ID=?', $ID);
+        return $this->nestedSet->depthConditional('ID=?', [$id]);
     }
 
     /**
-     * Returns parent of a node
-     *
-     * @param integer $ID
-     * @return array including Title, Description and ID
-     *
+     * {@inheritdoc}
      */
-    public function parentNode($ID)
+    public function parentNode($id)
     {
-        return $this->nestedSet->parentNodeConditional('ID=?', $ID);
+        return $this->nestedSet->parentNodeConditional('ID=?', [$id]);
     }
 
     /**
-     * Reset the table back to its initial state
-     * Keep in mind that this will not touch relations
-     *
-     * @param boolean $Ensure
-     *        	must be true to work, otherwise an \Exception is thrown
-     * @throws \Exception
-     * @return integer number of deleted entries
-     *
+     * {@inheritdoc}
      */
-    public function reset($Ensure = false)
+    public function reset($ensure = false)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        if($Ensure !== true)
+        if($ensure !== true)
         {
             throw new \Exception ('You must pass true to this function, otherwise it won\'t work.');
         }
@@ -421,134 +329,105 @@ abstract class BaseRbacManager extends JModel
         
         $Adapter = get_class($databaseManager->getConnection());
         
-        if($this->isMySql())
+        if($databaseManager->isMySql())
         {
             $databaseManager->request("ALTER TABLE {$tablePrefix}{$this->type} AUTO_INCREMENT=1");
         }    
-        elseif($this->isSQLite())
+        elseif($databaseManager->isSQLite())
         {
-            $databaseManager->request('delete from sqlite_sequence where name=? ', "{$tablePrefix}{$this->type}");
+            $databaseManager->request("delete from sqlite_sequence where name={$tablePrefix}{$this->type}");
         }
         else
         {
             throw new \Exception("Rbac can not reset table on this type of database: {$Adapter}");
         }     
         $databaseManager->request(
-            "INSERT INTO {$tablePrefix}{$this->type} (Title,Description,Lft,Rght) VALUES (?,?,?,?)",
-            "root",
-            "root",
-            0,
-            1
-        );
+            "INSERT INTO {$tablePrefix}{$this->type} (Title,Description,Lft,Rght) VALUES (?,?,?,?)"
+        , ["root", "root", 0, 1]);
         return (int) $res;
     }
     
     /**
-     * Remove roles or permissions from system
-     * If $recursive is set to true, it deletes all descendants
-     *
-     * @param integer $ID
-     * @param boolean $recursive
-     * @return boolean
+     * {@inheritdoc}
      */
-    public function remove($ID, $recursive = false)
+    public function remove($id, $recursive = false)
     {
         if($recursive === true)
         {
-            return $this->nestedSet->deleteSubtreeConditional('ID=?', $ID);
+            return $this->nestedSet->deleteSubtreeConditional('ID=?', [$id]);
         }
-        return $this->nestedSet->deleteConditional('ID=?', $ID);
+        return $this->nestedSet->deleteConditional('ID=?', [$id]);
     }
 
     /**
-     * Assigns a role to a permission (or vice-verse)
-     *
-     * @param mixed $Role
-     *         Id, Title and Path
-     * @param mixed $Permission
-     *         Id, Title and Path
-     * @return boolean inserted or existing
-     *
-     * @todo: Check for valid permissions/roles
-     * @todo: Implement custom error handler
+     * {@inheritdoc}
      */
-    public function assign($Role, $Permission)
+    public function assign($role, $permission)
     {
         $rbac = Rbac::getInstance();
         
         $manager = $rbac->getRbacManager();
         $databaseManager = $rbac->getDatabaseManager();
-        
-        $RoleID = $manager->getRoleManager()->getId($Role);
-        $PermissionID = $manager->getPermissionManager()->getId($Permission);
 
-        return $databaseManager->request(
+        return $rbac->getDatabaseManager()->request(
             'INSERT INTO ' . $databaseManager->getTablePrefix() . 'rolepermissions
             (RoleID,PermissionID,AssignmentDate)
-            VALUES (?,?,?)', $RoleID, $PermissionID, time()
-        ) >= 1;
+            VALUES (?,?,?)'
+        , [
+            $manager->getRoleManager()->getId($role),
+            $manager->getPermissionManager()->getId($permission),
+            time()
+        ]) >= 1;
     }
 
     /**
-     * Unassigns a role-permission relation
-     *
-     * @param mixed $Role
-     *         Id, Title and Path
-     * @param mixed $Permission:
-     *         Id, Title and Path
-     * @return boolean
+     * {@inheritdoc}
      */
-    public function unassign($Role, $Permission)
+    public function unassign($role, $permission)
     {
         $rbac = Rbac::getInstance();
         
         $manager = $rbac->getRbacManager();
         $databaseManager = $rbac->getDatabaseManager();
-        
-        $RoleID = $manager->getRoleManager()->getId($Role);
-        $PermissionID = $manager->getPermissionManager()->getId($Permission);
         
         return $databaseManager->request(
             'DELETE FROM ' . $databaseManager->getTablePrefix() . 'rolepermissions WHERE
             RoleID=? AND PermissionID=?'
-        , $RoleID, $PermissionID) == 1;
+        , [
+            $manager->getRoleManager()->getId($role),
+            $manager->getPermissionManager()->getId($permission)
+        ]) == 1;
     }
 
     /**
-     * Remove all role-permission relations
-     * mostly used for testing
-     *
-     * @param boolean $Ensure
-     *        	must be set to true or throws an \Exception
-     * @return number of deleted assignments
+     * {@inheritdoc}
      */
-    public function resetAssignments($Ensure = false)
+    public function resetAssignments($ensure = false)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         $tablePrefix = $databaseManager->getTablePrefix();
         
-        if($Ensure !== true)
+        if($ensure !== true)
         {
-            throw new \Exception ("You must pass true to this function, otherwise it won't work.");
-            return;
+            throw new \Exception ('You must pass true to this function, otherwise it won\'t work.');
         }
         
         $res = $databaseManager->request("DELETE FROM {$tablePrefix}rolepermissions");
 
         $Adapter = get_class($databaseManager->getConnection());
-        if($this->isMySql())
+        if($databaseManager->isMySql())
         {
             $databaseManager->request("ALTER TABLE {$tablePrefix}rolepermissions AUTO_INCREMENT =1 ");
         }
-        elseif($this->isSQLite())
+        elseif($databaseManager->isSQLite())
         {
-            $databaseManager->request("delete from sqlite_sequence where name=? ", "{$tablePrefix}_rolepermissions");
+            $databaseManager->request("delete from sqlite_sequence where name={$tablePrefix}_rolepermissions");
         }
         else
         {
             throw new \Exception ("Rbac can not reset table on this type of database: {$Adapter}");
         }
-        $this->assign($this->rootId(), $this->rootId());
+        $this->assign($this->rootId, $this->rootId);
         return $res;
     }
 }

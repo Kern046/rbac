@@ -193,63 +193,22 @@ class BaseNestedSet implements NestedSetInterface
     /**
      * {@inheritdoc}
      */
-    public function descendants($ID, $AbsoluteDepths = false)
+    public function descendants($id, $absoluteDepths = false)
     {
-        $DepthConcat =
-            ($AbsoluteDepths === false)
+        $depthConcat =
+            ($absoluteDepths === false)
             ? ' - (sub_tree.depth)'
             : ''
         ;
-           
-        return Rbac::getInstance()->getDatabaseManager()->request(
-            "SELECT node.*, (COUNT(parent.{$this->id()})-1$DepthConcat) AS Depth
-            FROM {$this->table()} AS node,
-            	{$this->table()} AS parent,
-            	{$this->table()} AS sub_parent,
-            	(
-                    SELECT node.{$this->id()}, (COUNT(parent.{$this->id()}) - 1) AS depth
-                    FROM {$this->table()} AS node,
-                    {$this->table()} AS parent
-                    WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-                    AND node.{$this->id()} = ?
-                    GROUP BY node.{$this->id()}
-                    ORDER BY node.{$this->left()}
-            	) AS sub_tree
-            WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-            	AND node.{$this->left()} BETWEEN sub_parent.{$this->left()} AND sub_parent.{$this->right()}
-            	AND sub_parent.{$this->id()} = sub_tree.{$this->id()}
-            GROUP BY node.{$this->id()}
-            HAVING Depth > 0
-            ORDER BY node.{$this->left()}"
-        , $ID);
+        return $this->getSubtreePart($id, $depthConcat, '> 0', "{$this->id()} = ?");
     }
     
     /**
      * {@inheritdoc}
      */
-    public function children($ID)
+    public function children($id)
     {
-        $Res = Rbac::getInstance()->getDatabaseManager()->request(
-            "SELECT node.*, (COUNT(parent.{$this->id()})-1 - (sub_tree.depth )) AS Depth
-            FROM {$this->table()} AS node,
-            	{$this->table()} AS parent,
-            	{$this->table()} AS sub_parent,
-           	(
-            		SELECT node.{$this->id()}, (COUNT(parent.{$this->id()}) - 1) AS depth
-            		FROM {$this->table()} AS node,
-            		{$this->table()} AS parent
-            		WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-            		AND node.{$this->id()} = ?
-            		GROUP BY node.{$this->id()}
-            		ORDER BY node.{$this->left()}
-            ) AS sub_tree
-            WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-            	AND node.{$this->left()} BETWEEN sub_parent.{$this->left()} AND sub_parent.{$this->right()}
-            	AND sub_parent.{$this->id()} = sub_tree.{$this->id()}
-            GROUP BY node.{$this->id()}
-            HAVING Depth = 1
-            ORDER BY node.{$this->left()};"
-        , $ID);
+        $Res = $this->getSubtreePart($id, ' - (sub_tree.depth )', '= 1', "{$this->id()} = ?");
             
         if($Res !== false)
         {
@@ -262,26 +221,59 @@ class BaseNestedSet implements NestedSetInterface
     }
     
     /**
-     * {@inheritdoc}
+     * 
+     * @param integer $id
+     * @param string $depthConcat
+     * @param string $depthLevel
+     * @param string $condition
+     * @return array
      */
-    public function path($ID)
+    protected function getSubtreePart($id, $depthConcat, $depthLevel, $condition, $arguments = array())
     {
         return Rbac::getInstance()->getDatabaseManager()->request(
-            "SELECT parent.* FROM {$this->table()} AS node, {$this->table} AS parent
+            "SELECT node.*, (COUNT(parent.{$this->id()})-1$depthConcat) AS Depth
+            FROM {$this->table()} AS node,
+            	{$this->table()} AS parent,
+            	{$this->table()} AS sub_parent,
+           	(
+            		SELECT node.{$this->id()}, (COUNT(parent.{$this->id()}) - 1) AS depth
+            		FROM {$this->table()} AS node,
+            		{$this->table()} AS parent
+            		WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
+            		AND node.$condition
+            		GROUP BY node.{$this->id()}
+            		ORDER BY node.{$this->left()}
+            ) AS sub_tree
             WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
-            AND node.{$this->id()} = ? ORDER BY parent.{$this->left()}"
-        , $ID);
+            	AND node.{$this->left()} BETWEEN sub_parent.{$this->left()} AND sub_parent.{$this->right()}
+            	AND sub_parent.{$this->id()} = sub_tree.{$this->id()}
+            GROUP BY node.{$this->id()}
+            HAVING Depth $depthLevel
+            ORDER BY node.{$this->left()};"
+        , $id);
     }
     
     /**
      * {@inheritdoc}
      */
-    public function leaves($PID = null)
+    public function path($id)
+    {
+        return Rbac::getInstance()->getDatabaseManager()->request(
+            "SELECT parent.* FROM {$this->table()} AS node, {$this->table} AS parent
+            WHERE node.{$this->left()} BETWEEN parent.{$this->left()} AND parent.{$this->right()}
+            AND node.{$this->id()} = ? ORDER BY parent.{$this->left()}"
+        , [$id]);
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function leaves($pid = null)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
         
         return
-            ($PID === null)
+            ($pid === null)
             ? $databaseManager->request("SELECT * FROM {$this->table()} "
             . "WHERE {$this->right()} = {$this->left()} + 1")
             : $databaseManager->request(
@@ -290,67 +282,67 @@ class BaseNestedSet implements NestedSetInterface
                 (SELECT {$this->left()} FROM {$this->table()} WHERE {$this->id()}=?)
                     AND 
                 (SELECT {$this->right()} FROM {$this->table()} WHERE {$this->id()}=?)"
-            , $PID, $PID)
+            , [$pid, $pid])
         ;
     }
     
     /**
      * {@inheritdoc}
      */
-    public function insertSibling($ID=0)
+    public function insertSibling($id = 0)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
-        //Find the Sibling
-        $Sibl = $databaseManager->request(
+        
+        $sibling = $databaseManager->request(
             "SELECT {$this->right()} AS `Right` FROM {$this->table()} WHERE {$this->id()} = ?"
-        , $ID)[0];
+        , [$id])[0];
             
-        if($Sibl === null)
+        if($sibling === null)
         {
-            $Sibl['Right']=0;
+            $sibling['Right']=0;
         }
         
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 "
             . "WHERE {$this->right()} > ?"
-        , $Sibl['Right']);
+        , [$sibling['Right']]);
             
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?"
-        , $Sibl['Right']);
+        , [$sibling['Right']]);
             
         return $databaseManager->request(
             "INSERT INTO {$this->table()} ({$this->left()},{$this->right()}) VALUES(?,?)"
-        , $Sibl['Right'] + 1, $Sibl['Right'] + 2);
+        , [$sibling['Right'] + 1, $sibling['Right'] + 2]);
     }
     
     /**
      * {@inheritdoc}
      */
-    public function insertChild($PID=0)
+    public function insertChild($pid = 0)
     {
         $databaseManager = Rbac::getInstance()->getDatabaseManager();
-        //Find the Sibling
-        $Sibl = $databaseManager->request(
-            "SELECT {$this->left()} AS `Left` FROM {$this->table()} WHERE {$this->id()} = ?"
-        , $PID)[0];
         
-        if($Sibl === null)
+        $sibling = $databaseManager->request(
+            "SELECT {$this->left()} AS `Left` FROM {$this->table()} WHERE {$this->id()} = ?"
+        , [$pid])[0];
+        
+        if($sibling === null)
         {
-            $Sibl['Left'] = 0;
+            $sibling['Left'] = 0;
         }
         
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->right()} = {$this->right()} + 2 WHERE {$this->right()} > ?"
-        , $Sibl['Left']);
+        , [$sibling['Left']]);
             
         $databaseManager->request(
             "UPDATE {$this->table()} SET {$this->left()} = {$this->left()} + 2 WHERE {$this->left()} > ?"
-        , $Sibl['Left']);
+        , [$sibling['Left']]);
             
         return $databaseManager->request(
             "INSERT INTO {$this->table()} ({$this->left()},{$this->right()}) VALUES(?,?)"
-        , $Sibl['Left'] + 1, $Sibl['Left'] + 2);
+        , [$sibling['Left'] + 1, $sibling['Left'] + 2]);
     }
     
     /**

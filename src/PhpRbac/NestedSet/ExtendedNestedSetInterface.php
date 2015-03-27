@@ -10,37 +10,34 @@ interface ExtendedNestedSetInterface extends NestedSetInterface
      * $Rest is optional, rest of variables to fill in placeholders of condition string,
      * one variable for each ? in condition
      * 
-     * @param string $Condition
-     * @param string $Rest
-     * @return integer ID
+     * @param string $condition
+     * @param string $value
+     * @return integer
      */
-    public function getID($ConditionString);
+    public function getID($condition, $value);
     
     
     /**
      * Returns the record of a node based on a SQL conditional string
-     * It accepts other params in the PreparedStatements format
-     * $Rest is optional, rest of variables to fill in placeholders of condition string,
-     * one variable for each ? in condition
      * 
-     * @param String $ConditionString
-     * @param string $Rest
-     * @return Array Record
+     * @param integer $id
+     * @return array
      */
-    public function getRecord($ConditionString, $Rest = null);
+    public function getRecord($id);
 
     /**
      * Adds a child to the beginning of a node's children
      * $FieldValueArray is key-paired field-values to insert
      * $Rest is optional, rest of variables to fill in placeholders of condition string,
      * one variable for each ? in condition
+     * This method returns the child ID
      *
-     * @param array $FieldValueArray
-     * @param string $ConditionString
-     * @param string $Rest
-     * @return integer ChildID
+     * @param array $fieldValues
+     * @param string $conditionString
+     * @param array $arguments
+     * @return integer
      */
-    public function insertChildData($FieldValueArray = [], $ConditionString = null, $Rest = null);
+    public function insertChildData($fieldValues = [], $conditionString = '', $arguments = []);
     
     /**
      * Adds a sibling after a node
